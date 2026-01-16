@@ -1,0 +1,49 @@
+version: '2.3'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+
+    command: >
+      redis-server /usr/local/etc/redis/redis.conf
+      --requirepass ${REDIS_PASSWORD}
+
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+
+    networks:
+      - redis_network
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+    # 资源限制 (docker-compose v2.3 兼容方式)
+    mem_limit: 1g
+    cpus: 1
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+    environment:
+      TZ: Asia/Shanghai
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  redis_network:
+    driver: bridge

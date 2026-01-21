@@ -6,27 +6,6 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# 导入进度显示库
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -f "$SCRIPT_DIR/progress_lib.sh" ]]; then
-    source "$SCRIPT_DIR/progress_lib.sh"
-else
-    # 如果找不到库文件，定义简单的进度函数
-    progress_init() { :; }
-    progress_step() { echo "→ $2"; }
-    progress_complete() { echo "安装完成"; }
-    progress_fail() { echo "错误: $1"; }
-    progress_status() { echo "⟳ $1"; }
-fi
-
-# 导入前置依赖检查库
-if [[ -f "$SCRIPT_DIR/dependencies_lib.sh" ]]; then
-    source "$SCRIPT_DIR/dependencies_lib.sh"
-    source "$SCRIPT_DIR/dependencies_config.sh"
-fi
-
-
-
 # 日志函数
 log_info() {
     echo -e "${GREEN}[INFO] $1${NC}"
@@ -338,14 +317,6 @@ main() {
 
     check_root
     check_system
-
-    # 检查前置依赖
-    if command -v check_and_install_dependencies &>/dev/null; then
-        log_info "检查前置依赖..."
-        check_and_install_dependencies "Docker Kylin" "${DOCKER_KYLIN_DEPENDENCIES[@]}"
-        echo ""
-    fi
-
     check_environment
     remove_old_docker
     install_dependencies

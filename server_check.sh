@@ -2324,13 +2324,19 @@ configure_auto_mount() {
         # 验证fstab (兼容多种Linux系统)
         local fstab_valid=1
 
-        # 尝试使用findmnt验证 (Systemd系统)
-        if command_exists findmnt; then
-            if ! findmnt --verify >/dev/null 2>&1; then
-                fstab_valid=0
+        # 检查fstab语法和格式（不检查挂载点是否存在）
+        if grep -E "^[^#[:space:]]" /etc/fstab | awk '{if(NF<4) exit 1}' >/dev/null 2>&1; then
+            # 使用findmnt进行额外验证（如果可用）
+            if command_exists findmnt; then
+                # 只检查语法，不强制验证挂载点存在
+                if ! findmnt --verify -q 2>/dev/null; then
+                    # 忽略某些非致命错误，只有严重错误才标记为无效
+                    if findmnt --verify 2>&1 | grep -qE "unknown.*column|parse error"; then
+                        fstab_valid=0
+                    fi
+                fi
             fi
-        # 如果findmnt不可用，使用基础验证
-        elif ! grep -E "^[^#[:space:]]" /etc/fstab | awk '{if(NF<4) exit 1}' >/dev/null 2>&1; then
+        else
             fstab_valid=0
         fi
 

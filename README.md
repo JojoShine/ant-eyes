@@ -1,451 +1,202 @@
-# Shell Collections v2.5 - Unified Installation Framework
+# Shell Collections - 自动化安装脚本集合
 
-Automated installation and repair scripts for enterprise Linux systems (CentOS/RHEL, Ubuntu, Kylin, UOS).
+一套完整的、独立的、生产就绪的 Linux 系统自动化安装脚本集合。针对 CentOS 7+、Ubuntu 18.04+ 和麒麟 Linux 进行了优化。
 
-## What's New in v2.5 (Unified Edition)
-
-🎯 **Major Update**: Installation and repair functionality are now unified into single scripts!
-
-### Highlights
-- ✅ **Single Scripts with Triple Functionality**: Each installation script now includes repair and auto-config modes
-- ✅ **Built-in Fix Functionality**: No more separate fix_*.sh scripts needed
-- ✅ **Auto-Memory Detection**: Intelligent system resource detection and configuration
-- ✅ **Multiple Operational Modes**: Fresh install, repair existing, or auto-configure
-- ✅ **Consistent Interface**: Same usage patterns across all services
-
-### Command Examples
-```bash
-# Mode 1: Fresh Installation
-sudo bash install_flink.sh
-
-# Mode 2: Repair Existing Installation
-sudo bash install_flink.sh --fix-only
-
-# Mode 3: Auto-Configuration
-sudo bash install_flink.sh --auto-config
-```
-
-All three modes available for: Flink, Spark, Doris, and many other services.
-
----
-
-## Quick Reference
-
-| Service | Installation | Repair | Auto-Config |
-|---------|-------------|--------|-------------|
-| Flink | `bash install_flink.sh` | `bash install_flink.sh --fix-only` | `bash install_flink.sh --auto-config` |
-| Spark | `bash install_spark.sh` | `bash install_spark.sh --fix-only` | `bash install_spark.sh --auto-config` |
-| Doris | `bash install_doris.sh` | `bash install_doris.sh --fix-only` | `bash install_doris.sh --auto-config` |
-
----
-
-## Unified Installation Scripts
-
-### Big Data & Analytics
-- **install_flink.sh** - Apache Flink v1.18.1 (Local/Cluster mode)
-- **install_spark.sh** - Apache Spark v3.4.1 (Standalone/Cluster mode)
-- **install_doris.sh** - Apache Doris v2.0.1 (Single-node/Cluster mode)
-
-### Databases
-- **install_postgresql.sh** - PostgreSQL with optional PostGIS
-- **install_mysql.sh** - MySQL/MariaDB with optimized configurations
-- **install_mongodb.sh** - MongoDB with replica sets support
-- **install_redis.sh** - Redis with persistence and replication
-
-### Message Queues & Caching
-- **install_rabbitmq.sh** - RabbitMQ with cluster support
-- **install_minio.sh** - MinIO object storage (S3-compatible)
-
-### Infrastructure
-- **install_docker.sh** - Docker Engine with optimized settings
-- **install_docker_kylin.sh** - Docker for Kylin Linux systems
-- **install_nginx.sh** - Nginx web server with common modules
-- **install_certbot.sh** - Certbot for SSL certificate management
-
-### Utilities
-- **server_check.sh** - Comprehensive system health check
-- **app_manager.sh** - Unified application lifecycle management
-
----
-
-## Installation Modes Explained
-
-### Mode 1: Fresh Installation (Default)
-```bash
-sudo bash install_flink.sh
-```
-**Use when**: Installing on a clean system
-
-**What it does**:
-- Detects OS and system resources
-- Installs Java if needed
-- Prompts for deployment preferences
-- Downloads and configures the service
-- Creates systemd service
-- Generates installation report
-
-### Mode 2: Repair Existing Installation (--fix-only)
-```bash
-sudo bash install_flink.sh --fix-only
-```
-**Use when**: Service is already installed but startup fails
-
-**What it does**:
-- Detects system memory automatically
-- Regenerates configuration with proper settings
-- Backs up original configuration
-- Restarts the service
-- Verifies operation
-
-**No interactive prompts** - fully automatic!
-
-### Mode 3: Auto-Configuration (--auto-config)
-```bash
-sudo bash install_flink.sh --auto-config
-```
-**Use when**: You want automatic detection and repair
-
-**What it does**:
-- Detects OS and resources
-- Assumes service is already installed
-- Auto-repairs configuration
-- Restarts services
-- Similar to --fix-only but with OS detection
-
----
-
-## Common Use Cases
-
-### Scenario 1: Flink Fails to Start with Memory Error
-```bash
-# Error message might be:
-# [ERROR] java.lang.OutOfMemoryError
-# [ERROR] jobmanager.memory.process.size not configured
-
-# Solution:
-sudo bash install_flink.sh --fix-only
-
-# The script will:
-# 1. Detect your system's total memory
-# 2. Calculate optimal JobManager and TaskManager memory
-# 3. Update flink-conf.yaml
-# 4. Restart Flink with new configuration
-```
-
-### Scenario 2: Spark Performance Issues
-```bash
-# Spark is running but using suboptimal memory settings
-sudo bash install_spark.sh --fix-only
-
-# The script will:
-# 1. Auto-detect system memory
-# 2. Regenerate spark-defaults.conf
-# 3. Configure driver and executor memory
-# 4. Restart Spark service
-```
-
-### Scenario 3: Doris FE/BE Startup Fails
-```bash
-# Both FE and BE components configured incorrectly
-sudo bash install_doris.sh --fix-only
-
-# The script will:
-# 1. Auto-detect system memory
-# 2. Fix both fe.conf and be.conf
-# 3. Set appropriate memory limits
-# 4. Restart both services
-```
-
----
-
-## Memory Configuration
-
-Each script automatically calculates optimal memory based on total system RAM:
-
-### Flink (v1.18.1)
-- **JobManager**: `total_memory / 4` (min 512m)
-- **TaskManager**: `total_memory / 2` (min 1024m)
-- Example: 16GB system → JM: 4GB, TM: 8GB
-
-### Spark (v3.4.1)
-- **Driver**: `total_memory / 4` (min 512m)
-- **Executor**: `total_memory / 2` (min 1024m)
-- Example: 8GB system → Driver: 2GB, Executor: 4GB
-
-### Doris (v2.0.1)
-- **FE**: 512m minimum (fixed)
-- **BE**: `total_memory / 2` (min 1024m)
-- Example: 32GB system → FE: 512m, BE: 16GB
-
----
-
-## Configuration Backup & Recovery
-
-All scripts automatically backup original configurations:
-
-```bash
-# Backups are timestamped
-/opt/flink/conf/flink-conf.yaml.backup.20240112_143022
-/opt/spark/conf/spark-defaults.conf.backup.20240112_143022
-/opt/doris/fe/conf/fe.conf.backup.20240112_143022
-
-# To restore from backup
-cp /opt/flink/conf/flink-conf.yaml.backup.20240112_143022 \
-   /opt/flink/conf/flink-conf.yaml
-```
-
----
-
-## Supported Operating Systems
-
-| OS Family | Versions | Package Manager |
-|-----------|----------|-----------------|
-| CentOS/RHEL | 7, 8, 9+ | yum/dnf |
-| Ubuntu/Debian | 18.04, 20.04, 22.04+ | apt |
-| Kylin Linux | 10+ | yum/apt |
-| UOS | All versions | yum/apt |
-
----
-
-## System Requirements
-
-### Minimum
-- **CPU**: 2 cores
-- **RAM**: 4GB (8GB+ recommended)
-- **Disk**: 10GB free space
-- **Network**: Internet access for package downloads
-
-### Recommended
-- **CPU**: 8+ cores
-- **RAM**: 32GB+
-- **Disk**: SSD with 100GB+ space
-- **Network**: Dedicated network interface (cluster mode)
-
----
-
-## Usage Examples
-
-### Flink Installation
-```bash
-# Fresh installation with interactive prompts
-sudo bash install_flink.sh
-
-# Repair existing Flink installation automatically
-sudo bash install_flink.sh --fix-only
-
-# Auto-detect and repair
-sudo bash install_flink.sh --auto-config
-```
-
-### Check Flink Status
-```bash
-# Service status
-systemctl status flink
-
-# View logs
-tail -f /opt/flink/logs/flink-*.log
-
-# Web UI
-http://your_ip:8081/
-```
-
-### Spark Installation
-```bash
-# Fresh installation
-sudo bash install_spark.sh
-
-# Quick repair for memory issues
-sudo bash install_spark.sh --fix-only
-```
-
-### Doris Installation
-```bash
-# Fresh installation (single-node or cluster)
-sudo bash install_doris.sh
-
-# Fix startup issues for both FE and BE
-sudo bash install_doris.sh --fix-only
-
-# Access Doris
-mysql -h 127.0.0.1 -P 9030 -u root
-```
-
----
-
-## Advanced Features
-
-### Multi-Node Cluster Setup
-
-**Flink Cluster**:
-```bash
-# On JobManager node
-sudo bash install_flink.sh
-
-# On TaskManager nodes
-sudo bash install_flink.sh --auto-config
-# Then manually configure workers file
-```
-
-**Spark Cluster**:
-```bash
-# On Master node
-sudo bash install_spark.sh
-# Select: Cluster mode, Master role
-
-# On Worker nodes
-sudo bash install_spark.sh --auto-config
-# Then update slaves configuration
-```
-
-**Doris Cluster**:
-```bash
-# On FE nodes
-sudo bash install_doris.sh
-
-# On BE nodes
-sudo bash install_doris.sh
-# Select: Cluster mode, BE role, provide FE IP
-```
-
-### Performance Tuning
-
-After installation, optimize via configuration files:
-
-**Flink**:
-```yaml
-# Edit /opt/flink/conf/flink-conf.yaml
-taskmanager.numberOfTaskSlots: 8
-parallelism.default: 16
-state.backend: rocksdb  # For production
-```
-
-**Spark**:
-```properties
-# Edit /opt/spark/conf/spark-defaults.conf
-spark.executor.cores: 4
-spark.default.parallelism: 32
-spark.sql.shuffle.partitions: 200
-```
-
-**Doris**:
-```conf
-# Edit /opt/doris/be/conf/be.conf
-max_query_cache_mem: 314572800
-be_service_threads: 64
-```
-
----
-
-## Troubleshooting
-
-### Service Fails to Start
-
-1. Check service status:
-   ```bash
-   systemctl status flink
-   journalctl -u flink -n 50
-   ```
-
-2. View application logs:
-   ```bash
-   tail -f /opt/flink/logs/flink-*.log
-   ```
-
-3. Use repair mode:
-   ```bash
-   sudo bash install_flink.sh --fix-only
-   ```
-
-### Memory-Related Errors
-
-```bash
-# Common error:
-# [ERROR] jobmanager.memory.process.size not configured
-
-# Fix:
-sudo bash install_flink.sh --fix-only
-```
-
-### Port Conflicts
-
-```bash
-# Check which process uses port 8081
-lsof -i :8081
-
-# Either:
-# 1. Stop the conflicting service
-# 2. Change port in configuration
-# 3. Run repair mode (may resolve auto-configuration issues)
-```
-
----
-
-## File Structure
+## 📁 项目结构
 
 ```
 shell_collections/
-├── operations/
-│   ├── install_flink.sh
-│   ├── install_spark.sh
-│   ├── install_doris.sh
-│   ├── install_*.sh (other services)
-│   ├── dependencies_lib.sh
-│   ├── dependencies_config.sh
-│   ├── app_manager.sh
-│   ├── progress_lib.sh
-│   └── ...
-├── server_check.sh
-├── UNIFIED_INSTALLATION_GUIDE.md
-└── README.md (this file)
+├── README.md                    # 本文件 - 项目概述
+│
+└── 📁 installation/             # 统一安装脚本入口
+    ├── README.md                # 导航指南
+    │
+    ├── 📁 centos/               # CentOS 7+ 脚本集（6 个）
+    │   ├── README.md
+    │   ├── install_docker.sh
+    │   ├── install_nginx.sh
+    │   ├── install_mysql.sh
+    │   ├── install_postgresql.sh
+    │   ├── install_mongodb.sh
+    │   └── install_redis.sh
+    │
+    ├── 📁 ubuntu/               # Ubuntu 18.04+ 脚本集（6 个）
+    │   ├── README.md
+    │   ├── install_docker.sh
+    │   ├── install_nginx.sh
+    │   ├── install_mysql.sh
+    │   ├── install_postgresql.sh
+    │   ├── install_mongodb.sh
+    │   └── install_redis.sh
+    │
+    ├── 📁 kylin/                # 麒麟 Linux 脚本集（6 个）
+    │   ├── README.md
+    │   ├── install_docker.sh
+    │   ├── install_nginx.sh
+    │   ├── install_mysql.sh
+    │   ├── install_postgresql.sh
+    │   ├── install_mongodb.sh
+    │   └── install_redis.sh
+    │
+    ├── 📁 docker-compose/       # Docker Compose 配置（6 个）
+    │   ├── README.md
+    │   ├── mysql/
+    │   ├── postgresql/
+    │   ├── mongodb/
+    │   ├── redis/
+    │   ├── rabbitmq/
+    │   └── minio/
+    │
+    └── 📁 utils/                # 工具脚本和框架
+        ├── README.md
+        ├── 📁 certificate/      # SSL/TLS 证书管理（3 个脚本）
+        │   ├── README.md
+        │   ├── install_certbot.sh
+        │   ├── manage_certificates.sh
+        │   └── renew_certificates.sh
+        │
+        └── 📁 data_governance/  # 大数据框架（3 个脚本）
+            ├── README.md
+            ├── install_doris.sh
+            ├── install_flink.sh
+            └── install_spark.sh
 ```
 
----
+## ✨ 项目特点
 
-## Key Improvements in v2.5
+### 🎯 核心优势
 
-| Feature | v2.4 | v2.5 |
+- **完全独立** - 每个脚本都是独立的，无外部库依赖
+- **直接可执行** - 拿来即用，无需任何配置或依赖安装
+- **多系统支持** - 适配 CentOS 7+、Ubuntu 18.04+、麒麟 Linux
+- **生产就绪** - 包含错误处理、服务验证、健康检查
+- **国内镜像** - 集成国内多个源加速下载（阿里云、清华、网易等）
+- **标准化设计** - 所有脚本遵循统一的结构和规范
+
+### 🛠️ 支持的服务
+
+#### 核心服务（跨平台支持）
+
+| 服务 | CentOS | Ubuntu | Kylin | 类型 |
+|------|--------|--------|-------|------|
+| Docker | ✅ | ✅ | ✅ | 容器化平台 |
+| Nginx | ✅ | ✅ | ✅ | Web 服务器 |
+| MySQL | ✅ | ✅ | ✅ | 关系型数据库 |
+| PostgreSQL | ✅ | ✅ | ✅ | 高级关系型数据库 |
+| MongoDB | ✅ | ✅ | ✅ | NoSQL 数据库 |
+| Redis | ✅ | ✅ | ✅ | 内存数据库 |
+
+**核心脚本总计：18 个** (3 个系统 × 6 个服务)
+
+#### 工具脚本和框架
+
+| 脚本/框架 | 位置 | 说明 |
 |---------|------|------|
-| Fix Scripts | Separate files | **Built-in** |
-| Auto-Memory | Manual calc | **Auto-detect** |
-| Command Modes | Single mode | **Three modes** |
-| Config Backups | Optional | **Automatic** |
-| Error Recovery | Manual | **Automatic repair** |
+| Docker Compose | 根目录 | Docker Compose 独立安装脚本 |
+| **证书管理** | `utils/certificate/` |  |
+| - Certbot | `utils/certificate/install_certbot.sh` | Let's Encrypt 自动证书 |
+| - 证书管理 | `utils/certificate/manage_certificates.sh` | SSL 证书日常管理 |
+| - 证书续期 | `utils/certificate/renew_certificates.sh` | 自动续期工具 |
+| **数据治理** | `utils/data_governance/` |  |
+| - Doris | `utils/data_governance/install_doris.sh` | 分析数据库 |
+| - Flink | `utils/data_governance/install_flink.sh` | 流处理框架 |
+| - Spark | `utils/data_governance/install_spark.sh` | 大数据处理框架 |
+
+**工具脚本总计：7 个**
+
+## 🚀 快速开始
+
+### 选择正确的脚本版本
+
+首先确定您的操作系统：
+
+```bash
+# 查看系统信息
+cat /etc/os-release
+
+# 或者
+lsb_release -a
+```
+
+然后选择对应目录中的脚本：
+
+- **CentOS/RHEL 7+** → `centos/` 目录
+- **Ubuntu 18.04+** → `ubuntu/` 目录
+- **麒麟 Linux** → `kylin/` 目录
+
+### 执行脚本
+
+```bash
+# 进入 installation 目录
+cd installation
+
+# 以 Docker 为例，在 Ubuntu 上安装：
+cd ubuntu
+sudo bash install_docker.sh
+
+# 或者直接执行：
+sudo bash installation/ubuntu/install_docker.sh
+```
+
+## 📖 快速导航
+
+**进入 installation 目录后：**
+
+- **系统指南**：`centos/README.md`、`ubuntu/README.md`、`kylin/README.md`
+- **Docker 快速启动**：`docker-compose/README.md`
+- **工具脚本**：`utils/README.md`
+- **证书管理**：`utils/certificate/README.md`
+- **大数据框架**：`utils/data_governance/README.md`
+- **安装导航**：`README.md`（installation 目录下）
+
+## 🔄 典型使用场景
+
+### 场景 1：部署完整的 Web 服务栈
+
+```bash
+# 以 Ubuntu 为例
+cd ubuntu/
+
+# 1. 安装容器运行时
+sudo bash install_docker.sh
+
+# 2. 安装 Web 服务器
+sudo bash install_nginx.sh
+
+# 3. 安装数据库
+sudo bash install_postgresql.sh
+
+# 4. 安装缓存
+sudo bash install_redis.sh
+```
+
+## ⚙️ 脚本特性详解
+
+### 标准化结构
+
+所有脚本都遵循相同的执行流程：
+
+1. **check_root()** - 验证 root 权限
+2. **安装步骤** - 系统相关的安装逻辑
+3. **配置步骤** - 应用特定的配置
+4. **start_service()** - 启动服务并启用自启动
+5. **verify()** - 验证安装结果
+
+### 彩色日志输出
+
+- 🔵 `[INFO]` - 信息（蓝色）
+- 🟢 `[SUCCESS]` - 成功（绿色）
+- 🟡 `[WARN]` - 警告（黄色）
+- 🔴 `[ERROR]` - 错误（红色）
+
+## 🔐 安全建议
+
+1. **在生产前测试** - 先在测试环境验证脚本
+2. **审查脚本内容** - 运行任何脚本前都要查看其代码
+3. **定期更新** - 检查新版本的脚本
 
 ---
 
-## Documentation
-
-- **UNIFIED_INSTALLATION_GUIDE.md** - Comprehensive guide for all three modes
-- **README.md** - This file, quick reference
-
----
-
-## Version Info
-
-- **Current Version**: 2.5 (Unified Edition)
-- **Last Updated**: January 2024
-- **Repository**: Shell Collections
-
----
-
-## Quick Links
-
-- [Unified Installation Guide](./UNIFIED_INSTALLATION_GUIDE.md)
-- [Flink Documentation](https://nightlies.apache.org/flink/flink-docs-stable/)
-- [Spark Documentation](https://spark.apache.org/docs/latest/)
-- [Doris Documentation](https://doris.apache.org/zh-CN/docs/)
-
----
-
-## License & Support
-
-Community-supported shell script collection for enterprise Linux systems.
-
-For issues or questions:
-1. Check logs: `/opt/service_name/logs/`
-2. Review configuration: `/opt/service_name/conf/`
-3. Run repair mode: `sudo bash install_service.sh --fix-only`
-
----
-
-*Shell Collections v2.5 - Making big data deployment simple and reliable*
+**项目最后更新**：2025年1月21日
+**版本**：1.0.0
+**最低要求**：root 权限、网络连接

@@ -203,6 +203,45 @@ install_node_lts() {
     fi
 }
 
+# 创建全局 Node 软链接
+create_global_symlinks() {
+    log_info "创建全局 Node/npm 软链接..."
+
+    export NVM_DIR="$TARGET_HOME/.nvm"
+    if [[ ! -s "$NVM_DIR/nvm.sh" ]]; then
+        log_warn "NVM 未正确安装，跳过软链接创建"
+        return 0
+    fi
+
+    # 加载 NVM
+    . "$NVM_DIR/nvm.sh"
+
+    # 获取 Node 和 npm 的路径
+    if command -v node &> /dev/null; then
+        NODE_PATH=$(command -v node)
+        NPM_PATH=$(command -v npm)
+        NPIX_PATH=$(command -v npx 2>/dev/null || echo "")
+
+        # 创建全局软链接
+        if [[ -e "$NODE_PATH" ]]; then
+            ln -sf "$NODE_PATH" /usr/local/bin/node 2>/dev/null || true
+            log_success "Node 全局软链接已创建"
+        fi
+
+        if [[ -e "$NPM_PATH" ]]; then
+            ln -sf "$NPM_PATH" /usr/local/bin/npm 2>/dev/null || true
+            log_success "npm 全局软链接已创建"
+        fi
+
+        if [[ -n "$NPIX_PATH" && -e "$NPIX_PATH" ]]; then
+            ln -sf "$NPIX_PATH" /usr/local/bin/npx 2>/dev/null || true
+            log_success "npx 全局软链接已创建"
+        fi
+    else
+        log_warn "未找到 Node 可执行文件，跳过全局软链接创建"
+    fi
+}
+
 # 验证安装
 verify() {
     log_info "验证安装..."
@@ -214,8 +253,28 @@ verify() {
         exit 1
     fi
 
-    # 尝试验证 Node
-    if [[ "$TARGET_USER" == "root" ]]; then
+    # 验证 Node 和 npm
+    if [[ $EUID -eq 0 ]]; then
+        # Root 用户：检查全局软链接
+        if command -v node &> /dev/null; then
+            NODE_VERSION=$(node --version)
+            NODE_PATH=$(command -v node)
+            log_success "✓ Node.js 版本: $NODE_VERSION (全局可用: $NODE_PATH)"
+        else
+            log_warn "Node 未在全局可用，但 NVM 已安装"
+        fi
+
+        if command -v npm &> /dev/null; then
+            NPM_VERSION=$(npm --version)
+            NPM_PATH=$(command -v npm)
+            log_success "✓ npm 版本: $NPM_VERSION (全局可用: $NPM_PATH)"
+        fi
+
+        if command -v npx &> /dev/null; then
+            log_success "✓ npx 已全局可用"
+        fi
+    else
+        # 普通用户：需要加载 NVM
         export NVM_DIR="$TARGET_HOME/.nvm"
         if [[ -s "$NVM_DIR/nvm.sh" ]]; then
             . "$NVM_DIR/nvm.sh"
@@ -231,11 +290,6 @@ verify() {
                 log_success "npm 版本: $NPM_VERSION"
             fi
         fi
-    else
-        log_info "请以用户 $TARGET_USER 的身份运行以下命令来验证:"
-        log_info "  source ~/.nvm/nvm.sh"
-        log_info "  node --version"
-        log_info "  npm --version"
     fi
 }
 
@@ -246,6 +300,12 @@ main() {
     install_nvm
     configure_nvm
     install_node_lts
+
+    # 创建全局软链接（仅限 root 用户执行）
+    if [[ $EUID -eq 0 ]]; then
+        create_global_symlinks
+    fi
+
     verify
 
     echo ""
@@ -258,6 +318,9 @@ main() {
         echo "    source ~/.nvm/nvm.sh"
         echo ""
         echo "  或者在新的 shell 会话中使用（已自动配置）"
+        echo ""
+    else
+        echo -e "${GREEN}✓${NC} Node/npm 已创建全局软链接，可以直接使用"
         echo ""
     fi
 }

@@ -170,9 +170,9 @@ EOF"
     log_success "NVM 环境变量和 NPM 镜像配置完成"
 }
 
-# 安装 Node LTS
+# 安装 Node LTS（v18 或 v20，兼容性更好）
 install_node_lts() {
-    log_info "安装 Node.js LTS..."
+    log_info "安装 Node.js LTS（v18/v20）..."
 
     # 加载 NVM
     if [[ "$TARGET_USER" == "root" ]]; then
@@ -183,23 +183,23 @@ install_node_lts() {
 
         # 使用 nvm 命令
         if command -v nvm &> /dev/null || [[ $(type -t nvm) == function ]]; then
-            log_info "安装 Node.js LTS..."
-            nvm install --lts
-            nvm use --lts
+            log_info "安装 Node.js v18..."
+            nvm install 18
+            nvm use 18
             nvm alias default node
-            log_success "Node.js LTS 安装完成"
+            log_success "Node.js v18 安装完成"
         else
-            log_warn "无法加载 NVM，请手动运行: source ~/.nvm/nvm.sh && nvm install --lts"
+            log_warn "无法加载 NVM，请手动运行: source ~/.nvm/nvm.sh && nvm install 18"
         fi
     else
-        log_info "为用户 $TARGET_USER 安装 Node.js LTS..."
+        log_info "为用户 $TARGET_USER 安装 Node.js v18..."
         sudo -u "$TARGET_USER" bash -c "
             export NVM_DIR=\"\$HOME/.nvm\"
             [ -s \"\$NVM_DIR/nvm.sh\" ] && \. \"\$NVM_DIR/nvm.sh\"
-            nvm install --lts
-            nvm use --lts
+            nvm install 18
+            nvm use 18
             nvm alias default node
-        " || log_warn "Node.js LTS 安装需要手动完成"
+        " || log_warn "Node.js 安装需要手动完成"
     fi
 }
 

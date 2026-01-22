@@ -85,6 +85,41 @@ EOF
     log_success "yum 源配置完成"
 }
 
+install_epel_repo() {
+    log_info "配置 EPEL 源..."
+    OS_VERSION=$(rpm -E %rhel)
+
+    if [[ "$OS_VERSION" == "7" ]]; then
+        cat > /etc/yum.repos.d/epel.repo <<'EOF'
+[epel]
+name=Extra Packages for Enterprise Linux $releasever - Aliyun Mirror
+baseurl=https://mirrors.aliyun.com/epel/$releasever/$basearch/
+        https://mirrors.tuna.tsinghua.edu.cn/epel/$releasever/$basearch/
+gpgcheck=0
+EOF
+    elif [[ "$OS_VERSION" == "8" ]]; then
+        cat > /etc/yum.repos.d/epel.repo <<'EOF'
+[epel]
+name=Extra Packages for Enterprise Linux $releasever - Aliyun Mirror
+baseurl=https://mirrors.aliyun.com/epel/$releasever/Everything/$basearch/
+        https://mirrors.tuna.tsinghua.edu.cn/epel/$releasever/Everything/$basearch/
+gpgcheck=0
+EOF
+    else
+        cat > /etc/yum.repos.d/epel.repo <<'EOF'
+[epel]
+name=Extra Packages for Enterprise Linux $releasever - Aliyun Mirror
+baseurl=https://mirrors.aliyun.com/epel/$releasever/Everything/$basearch/
+        https://mirrors.tuna.tsinghua.edu.cn/epel/$releasever/Everything/$basearch/
+gpgcheck=0
+EOF
+    fi
+
+    yum clean all 2>/dev/null || true
+    yum makecache fast 2>/dev/null || yum makecache 2>/dev/null || true
+    log_success "EPEL 源配置完成"
+}
+
 install_nginx() {
     log_info "安装 Nginx..."
     yum install -y nginx
@@ -151,6 +186,7 @@ main() {
     print_header
     check_root
     configure_yum_mirror
+    install_epel_repo
     install_nginx
     configure_nginx
     configure_firewall

@@ -76,8 +76,13 @@ upgrade_system_libs() {
         log_info "升级系统库..."
 
         if command -v yum &> /dev/null; then
-            yum update -y glibc glibc-common glibc-devel gcc libstdc++ libstdc++-devel 2>/dev/null || true
-            log_info "系统库升级完成"
+            yum update -y glibc glibc-common glibc-devel gcc libstdc++ libstdc++-devel
+            if [[ $? -eq 0 ]]; then
+                log_success "系统库升级完成"
+                log_warn "请重新启动系统以加载新的系统库：sudo reboot"
+            else
+                log_error "系统库升级失败，请检查 yum 配置或手动运行：sudo yum update -y glibc glibc-common glibc-devel gcc libstdc++ libstdc++-devel"
+            fi
         fi
     else
         log_success "系统库版本满足要求 ($glibc_version)"

@@ -60,6 +60,30 @@ detect_user() {
     log_info "将为用户 '$TARGET_USER' 安装 NVM (主目录: $TARGET_HOME)"
 }
 
+# 升级系统库以支持更新的 Node 版本
+upgrade_system_libs() {
+    log_info "检查系统库版本..."
+
+    local glibc_version=$(ldd --version 2>/dev/null | head -n 1 | awk '{print $NF}')
+    log_info "当前 glibc 版本: $glibc_version"
+
+    # 检查是否需要升级
+    local major=$(echo "$glibc_version" | cut -d. -f1)
+    local minor=$(echo "$glibc_version" | cut -d. -f2)
+
+    if [[ $major -lt 2 || ($major -eq 2 && $minor -lt 25) ]]; then
+        log_warn "glibc 版本过旧 ($glibc_version)，需要升级以支持 Node 20+"
+        log_info "升级系统库..."
+
+        if command -v yum &> /dev/null; then
+            yum update -y glibc glibc-common glibc-devel gcc libstdc++ libstdc++-devel 2>/dev/null || true
+            log_info "系统库升级完成"
+        fi
+    else
+        log_success "系统库版本满足要求 ($glibc_version)"
+    fi
+}
+
 # 检查依赖
 check_dependencies() {
     log_info "检查依赖..."
@@ -186,17 +210,19 @@ install_node_lts() {
             log_info "清理旧版本的 Node..."
             rm -rf "$NVM_DIR/versions/node/v24"* 2>/dev/null || true
             rm -rf "$NVM_DIR/versions/node/v20"* 2>/dev/null || true
+            rm -rf "$NVM_DIR/versions/node/v18"* 2>/dev/null || true
+            rm -rf "$NVM_DIR/versions/node/v16"* 2>/dev/null || true
 
-            log_info "安装 Node.js v18..."
-            nvm install 18.20.8
-            nvm use 18.20.8
-            nvm alias default 18.20.8
-            log_success "Node.js v18 安装完成"
+            log_info "安装 Node.js v20（推荐）..."
+            nvm install 20
+            nvm use 20
+            nvm alias default 20
+            log_success "Node.js v20 安装完成"
         else
-            log_warn "无法加载 NVM，请手动运行: source ~/.nvm/nvm.sh && nvm install 18"
+            log_warn "无法加载 NVM，请手动运行: source ~/.nvm/nvm.sh && nvm install 16"
         fi
     else
-        log_info "为用户 $TARGET_USER 安装 Node.js v18..."
+        log_info "为用户 $TARGET_USER 安装 Node.js v20..."
         sudo -u "$TARGET_USER" bash -c "
             export NVM_DIR=\"\$HOME/.nvm\"
             [ -s \"\$NVM_DIR/nvm.sh\" ] && \. \"\$NVM_DIR/nvm.sh\"
@@ -204,10 +230,11 @@ install_node_lts() {
             # 清理旧版本
             rm -rf \"\$NVM_DIR/versions/node/v24\"* 2>/dev/null || true
             rm -rf \"\$NVM_DIR/versions/node/v20\"* 2>/dev/null || true
+            rm -rf \"\$NVM_DIR/versions/node/v18\"* 2>/dev/null || true
 
-            nvm install 18.20.8
-            nvm use 18.20.8
-            nvm alias default 18.20.8
+            nvm install 20
+            nvm use 20
+            nvm alias default 20
         " || log_warn "Node.js 安装需要手动完成"
     fi
 }
@@ -311,6 +338,7 @@ verify() {
 main() {
     print_header
     detect_user "$@"
+    upgrade_system_libs
     check_dependencies
     install_nvm
     configure_nvm

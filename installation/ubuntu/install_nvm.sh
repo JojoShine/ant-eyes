@@ -183,10 +183,14 @@ install_node_lts() {
 
         # 使用 nvm 命令
         if command -v nvm &> /dev/null || [[ $(type -t nvm) == function ]]; then
+            log_info "清理旧版本的 Node..."
+            rm -rf "$NVM_DIR/versions/node/v24"* 2>/dev/null || true
+            rm -rf "$NVM_DIR/versions/node/v20"* 2>/dev/null || true
+
             log_info "安装 Node.js v18..."
-            nvm install 18
-            nvm use 18
-            nvm alias default node
+            nvm install 18.20.8
+            nvm use 18.20.8
+            nvm alias default 18.20.8
             log_success "Node.js v18 安装完成"
         else
             log_warn "无法加载 NVM，请手动运行: source ~/.nvm/nvm.sh && nvm install 18"
@@ -196,9 +200,14 @@ install_node_lts() {
         sudo -u "$TARGET_USER" bash -c "
             export NVM_DIR=\"\$HOME/.nvm\"
             [ -s \"\$NVM_DIR/nvm.sh\" ] && \. \"\$NVM_DIR/nvm.sh\"
-            nvm install 18
-            nvm use 18
-            nvm alias default node
+
+            # 清理旧版本
+            rm -rf \"\$NVM_DIR/versions/node/v24\"* 2>/dev/null || true
+            rm -rf \"\$NVM_DIR/versions/node/v20\"* 2>/dev/null || true
+
+            nvm install 18.20.8
+            nvm use 18.20.8
+            nvm alias default 18.20.8
         " || log_warn "Node.js 安装需要手动完成"
     fi
 }

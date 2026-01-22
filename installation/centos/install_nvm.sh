@@ -213,32 +213,38 @@ create_global_symlinks() {
         return 0
     fi
 
-    # 加载 NVM
-    . "$NVM_DIR/nvm.sh"
+    # 查找最新安装的 Node 版本
+    local NODE_VERSION_DIR=$(find "$NVM_DIR/versions/node" -maxdepth 1 -type d | sort -V | tail -1 2>/dev/null)
 
-    # 获取 Node 和 npm 的路径
-    if command -v node &> /dev/null; then
-        NODE_PATH=$(command -v node)
-        NPM_PATH=$(command -v npm)
-        NPIX_PATH=$(command -v npx 2>/dev/null || echo "")
+    if [[ -z "$NODE_VERSION_DIR" || ! -d "$NODE_VERSION_DIR" ]]; then
+        log_warn "未找到 NVM 安装的 Node 版本目录，跳过软链接创建"
+        return 0
+    fi
 
-        # 创建全局软链接
-        if [[ -e "$NODE_PATH" ]]; then
-            ln -sf "$NODE_PATH" /usr/local/bin/node 2>/dev/null || true
-            log_success "Node 全局软链接已创建"
+    local NODE_BIN="$NODE_VERSION_DIR/bin/node"
+    local NPM_BIN="$NODE_VERSION_DIR/bin/npm"
+    local NPX_BIN="$NODE_VERSION_DIR/bin/npx"
+
+    # 创建全局软链接
+    if [[ -e "$NODE_BIN" ]]; then
+        ln -sf "$NODE_BIN" /usr/local/bin/node 2>/dev/null
+        if [[ -e /usr/local/bin/node ]]; then
+            log_success "Node 全局软链接已创建: /usr/local/bin/node -> $NODE_BIN"
         fi
+    fi
 
-        if [[ -e "$NPM_PATH" ]]; then
-            ln -sf "$NPM_PATH" /usr/local/bin/npm 2>/dev/null || true
-            log_success "npm 全局软链接已创建"
+    if [[ -e "$NPM_BIN" ]]; then
+        ln -sf "$NPM_BIN" /usr/local/bin/npm 2>/dev/null
+        if [[ -e /usr/local/bin/npm ]]; then
+            log_success "npm 全局软链接已创建: /usr/local/bin/npm -> $NPM_BIN"
         fi
+    fi
 
-        if [[ -n "$NPIX_PATH" && -e "$NPIX_PATH" ]]; then
-            ln -sf "$NPIX_PATH" /usr/local/bin/npx 2>/dev/null || true
-            log_success "npx 全局软链接已创建"
+    if [[ -e "$NPX_BIN" ]]; then
+        ln -sf "$NPX_BIN" /usr/local/bin/npx 2>/dev/null
+        if [[ -e /usr/local/bin/npx ]]; then
+            log_success "npx 全局软链接已创建: /usr/local/bin/npx -> $NPX_BIN"
         fi
-    else
-        log_warn "未找到 Node 可执行文件，跳过全局软链接创建"
     fi
 }
 

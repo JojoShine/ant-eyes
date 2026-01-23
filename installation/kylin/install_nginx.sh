@@ -2,6 +2,7 @@
 
 ################################################################################
 # Nginx 自动安装脚本 - Kylin Linux
+# 使用 Kylin 官方源，不修改系统 yum 配置
 # 完全独立，无外部依赖
 ################################################################################
 
@@ -24,6 +25,7 @@ print_header() {
     echo -e "${GREEN}"
     echo "╔═══════════════════════════════════════════════════════════╗"
     echo "║     Nginx 自动安装脚本 v1.0.0 (Kylin Linux)            ║"
+    echo "║     使用 Kylin 官方源，无需配置                         ║"
     echo "╚═══════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -32,6 +34,15 @@ check_root() {
     if [[ $EUID -ne 0 ]]; then
         log_error "此脚本需要 root 权限运行"
         exit 1
+    fi
+}
+
+check_kylin_system() {
+    log_info "检测 Kylin 系统..."
+    if ! grep -q "Kylin\|kylin" /etc/os-release 2>/dev/null; then
+        log_warn "未检测到 Kylin 系统标识，继续尝试安装"
+    else
+        log_success "检测到 Kylin Linux 系统"
     fi
 }
 
@@ -100,6 +111,7 @@ verify() {
 main() {
     print_header
     check_root
+    check_kylin_system
     install_nginx
     configure_nginx
     configure_firewall

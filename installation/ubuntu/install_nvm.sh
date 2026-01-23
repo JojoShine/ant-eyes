@@ -203,19 +203,27 @@ install_nvm() {
         return 0
     fi
 
-    # NVM 安装脚本 URL（使用国内镜像加速）
-    local NVM_INSTALL_URL="https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh"
-    local NVM_MIRROR_URL="https://ghproxy.com/https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh"
+    # NVM 安装脚本 URL - 多个国内镜像源
+    local NVM_URLS=(
+        "https://ghproxy.com/https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh"
+        "https://raw.fastgit.org/nvm-sh/nvm/v0.39.0/install.sh"
+        "https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh"
+    )
 
-    log_info "从 GitHub 下载 NVM..."
+    log_info "从 GitHub 下载 NVM（尝试多个镜像源）..."
 
-    # 尝试使用国内镜像先
-    if curl -s -f -o /tmp/nvm_install.sh "$NVM_MIRROR_URL" 2>/dev/null; then
-        log_success "使用国内镜像下载成功"
-    elif curl -s -f -o /tmp/nvm_install.sh "$NVM_INSTALL_URL" 2>/dev/null; then
-        log_success "从原始源下载成功"
-    else
-        log_error "无法下载 NVM 安装脚本"
+    local download_success=0
+    for url in "${NVM_URLS[@]}"; do
+        log_info "尝试从: ${url##*/} ..."
+        if curl -s -f -m 30 -o /tmp/nvm_install.sh "$url" 2>/dev/null; then
+            log_success "NVM 下载成功"
+            download_success=1
+            break
+        fi
+    done
+
+    if [[ $download_success -eq 0 ]]; then
+        log_error "无法从任何源下载 NVM 安装脚本，请检查网络连接"
         exit 1
     fi
 

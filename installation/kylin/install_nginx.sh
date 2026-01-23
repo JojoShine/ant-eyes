@@ -37,8 +37,7 @@ check_root() {
 
 install_nginx() {
     log_info "安装 Nginx..."
-    apt-get update -qq
-    apt-get install -y nginx
+    yum install -y nginx
     log_success "Nginx 安装完成"
 }
 
@@ -59,10 +58,11 @@ configure_nginx() {
 configure_firewall() {
     log_info "配置防火墙规则..."
 
-    if command -v ufw &> /dev/null; then
-        if ufw status | grep -q "Status: active"; then
-            ufw allow 80/tcp
-            ufw allow 443/tcp
+    if command -v firewall-cmd &> /dev/null; then
+        if systemctl is-active --quiet firewalld; then
+            firewall-cmd --permanent --add-service=http
+            firewall-cmd --permanent --add-service=https
+            firewall-cmd --reload
             log_success "防火墙规则已添加"
         fi
     fi

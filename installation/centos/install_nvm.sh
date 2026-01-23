@@ -60,112 +60,6 @@ detect_user() {
     log_info "将为用户 '$TARGET_USER' 安装 NVM (主目录: $TARGET_HOME)"
 }
 
-# 配置最新的 yum 源以支持 glibc 升级
-configure_yum_repos() {
-    log_info "检测系统版本并配置最新 yum 源..."
-
-    # 检测 CentOS 版本
-    OS_VERSION=$(rpm -E %rhel 2>/dev/null)
-    if [[ -z "$OS_VERSION" ]]; then
-        log_warn "无法检测 CentOS 版本，跳过 yum 源配置"
-        return 0
-    fi
-
-    log_info "检测到 CentOS/RHEL 版本: $OS_VERSION"
-
-    # 备份旧源
-    if [[ -d /etc/yum.repos.d ]]; then
-        mkdir -p /etc/yum.repos.d.bak
-        for file in /etc/yum.repos.d/*.repo; do
-            [[ -f "$file" ]] && cp "$file" /etc/yum.repos.d.bak/ 2>/dev/null || true
-        done
-    fi
-
-    # 配置官方 CentOS 或 Vault 源
-    if [[ "$OS_VERSION" == "7" ]]; then
-        log_info "为 CentOS 7 配置官方源..."
-        cat > /etc/yum.repos.d/CentOS-Official.repo <<'REPO'
-[base]
-name=CentOS-7 - Base - Official
-baseurl=http://mirror.centos.org/centos/7/os/$basearch/
-        https://mirrors.aliyun.com/centos/7/os/$basearch/
-        https://mirrors.tuna.tsinghua.edu.cn/centos/7/os/$basearch/
-gpgcheck=0
-enabled=1
-
-[updates]
-name=CentOS-7 - Updates - Official
-baseurl=http://mirror.centos.org/centos/7/updates/$basearch/
-        https://mirrors.aliyun.com/centos/7/updates/$basearch/
-        https://mirrors.tuna.tsinghua.edu.cn/centos/7/updates/$basearch/
-gpgcheck=0
-enabled=1
-
-[extras]
-name=CentOS-7 - Extras - Official
-baseurl=http://mirror.centos.org/centos/7/extras/$basearch/
-        https://mirrors.aliyun.com/centos/7/extras/$basearch/
-        https://mirrors.tuna.tsinghua.edu.cn/centos/7/extras/$basearch/
-gpgcheck=0
-enabled=1
-REPO
-    else
-        log_info "为 CentOS/RHEL $OS_VERSION 配置 Vault 源..."
-        cat > /etc/yum.repos.d/CentOS-Vault.repo <<'REPO'
-[base]
-name=CentOS-Vault - Base
-baseurl=http://vault.centos.org/centos/$releasever/os/$basearch/
-        https://mirrors.aliyun.com/centos-vault/$releasever/os/$basearch/
-        https://mirrors.tuna.tsinghua.edu.cn/centos-vault/$releasever/os/$basearch/
-gpgcheck=0
-enabled=1
-
-[updates]
-name=CentOS-Vault - Updates
-baseurl=http://vault.centos.org/centos/$releasever/updates/$basearch/
-        https://mirrors.aliyun.com/centos-vault/$releasever/updates/$basearch/
-        https://mirrors.tuna.tsinghua.edu.cn/centos-vault/$releasever/updates/$basearch/
-gpgcheck=0
-enabled=1
-REPO
-    fi
-
-    # 清除缓存并重建
-    log_info "清除 yum 缓存并重建..."
-    yum clean all 2>/dev/null || true
-    yum makecache fast 2>/dev/null || yum makecache 2>/dev/null || true
-
-    log_success "yum 源配置完成"
-}
-
-# 升级系统库以支持更新的 Node 版本
-upgrade_system_libs() {
-    log_info "检查系统库版本..."
-
-    local glibc_version=$(ldd --version 2>/dev/null | head -n 1 | awk '{print $NF}')
-    log_info "当前 glibc 版本: $glibc_version"
-
-    # 检查是否需要升级
-    local major=$(echo "$glibc_version" | cut -d. -f1)
-    local minor=$(echo "$glibc_version" | cut -d. -f2)
-
-    if [[ $major -lt 2 || ($major -eq 2 && $minor -lt 25) ]]; then
-        log_warn "glibc 版本过旧 ($glibc_version)，需要升级以支持 Node 20+"
-        log_info "升级系统库（这可能需要几分钟）..."
-
-        if command -v yum &> /dev/null; then
-            yum install -y glibc glibc-common glibc-devel gcc libstdc++ libstdc++-devel
-            if [[ $? -eq 0 ]]; then
-                log_success "系统库安装/升级完成"
-                log_warn "重要：请重新启动系统以加载新的系统库：sudo reboot"
-            else
-                log_error "系统库升级失败，请检查网络或手动运行升级命令"
-            fi
-        fi
-    else
-        log_success "系统库版本满足要求 ($glibc_version)"
-    fi
-}
 
 # 检查依赖
 check_dependencies() {
@@ -429,13 +323,6 @@ verify() {
 main() {
     print_header
     detect_user "$@"
-
-    # 仅在 root 用户时配置 yum 源和升级系统库
-    if [[ $EUID -eq 0 ]]; then
-        configure_yum_repos
-        upgrade_system_libs
-    fi
-
     check_dependencies
     install_nvm
     configure_nvm

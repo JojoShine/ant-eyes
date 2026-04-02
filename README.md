@@ -40,6 +40,29 @@ sudo bash server_check.sh
 
 ## 📦 快速安装
 
+### 前置条件：安装 Node.js
+
+使用 npm 方式需要先安装 Node.js 环境。推荐使用 NVM 管理 Node.js 版本：
+
+```bash
+# 方式 1：使用本项目的 NVM 安装脚本（推荐，已配置国内镜像）
+sudo bash installation/services/install_nvm.sh
+
+# 方式 2：手动安装 NVM（需要配置镜像）
+curl -o- https://gitee.com/mirrors/nvm/raw/v0.39.7/install.sh | bash
+export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node
+source ~/.nvm/nvm.sh
+nvm install 20
+```
+
+安装完成后，验证 Node.js 环境：
+```bash
+node --version  # 应显示 v20.x.x
+npm --version   # 应显示 npm 版本
+```
+
+### 使用 npm 快速安装
+
 通过 npm 快速使用所有工具，无需克隆仓库：
 
 ```bash
@@ -210,5 +233,5 @@ npx ant-eyes-install certbot
 ---
 
 **项目版本**：v2.0.0  
-**最后更新**：2026年4月1日  
-**最低要求**：root 权限、网络连接、Node.js 14+（仅 npm 方式需要）
+**最后更新**：2026年4月2日  
+**最低要求**：root 权限、网络连接、Node.js 14+（仅 npm 方式需要，推荐使用 Node.js 20 LTS）

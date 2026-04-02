@@ -209,8 +209,8 @@ install_nvm() {
     fi
 
     local NVM_URLS=(
-        "https://ghproxy.com/https://raw.githubusercontent.com/nvm-sh/nvm/$NVM_VERSION/install.sh"
-        "https://raw.fastgit.org/nvm-sh/nvm/$NVM_VERSION/install.sh"
+        "https://gitee.com/mirrors/nvm/raw/$NVM_VERSION/install.sh"
+        "https://cdn.npmmirror.com/binaries/nvm/$NVM_VERSION/install.sh"
         "https://raw.githubusercontent.com/nvm-sh/nvm/$NVM_VERSION/install.sh"
     )
 
@@ -230,10 +230,11 @@ install_nvm() {
     fi
 
     log_info "执行 NVM 安装脚本..."
+    export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node
     if [[ "$TARGET_USER" == "root" ]]; then
         bash /tmp/nvm_install.sh
     else
-        sudo -u "$TARGET_USER" bash /tmp/nvm_install.sh
+        sudo -u "$TARGET_USER" bash -c "export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node && bash /tmp/nvm_install.sh"
     fi
 
     rm -f /tmp/nvm_install.sh
@@ -285,6 +286,7 @@ install_node_lts() {
             . "$NVM_DIR/nvm.sh"
         fi
         if declare -f nvm &>/dev/null || [[ $(type -t nvm) == function ]]; then
+            export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node
             nvm install "$NODE_VERSION"
             nvm use "$NODE_VERSION"
             nvm alias default "$NODE_VERSION"
@@ -295,6 +297,7 @@ install_node_lts() {
     else
         sudo -u "$TARGET_USER" bash -c "
             export NVM_DIR=\"\$HOME/.nvm\"
+            export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node
             [ -s \"\$NVM_DIR/nvm.sh\" ] && . \"\$NVM_DIR/nvm.sh\"
             nvm install $NODE_VERSION
             nvm use $NODE_VERSION

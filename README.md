@@ -1,202 +1,214 @@
-# Shell Collections - 自动化安装脚本集合
+# ant-eyes - Linux 运维工具集
 
-一套完整的、独立的、生产就绪的 Linux 系统自动化安装脚本集合。针对 CentOS 7+、Ubuntu 18.04+ 和麒麟 Linux 进行了优化。
+一套完整的 Linux 系统运维工具集，包含系统检查、安全审计、服务安装等功能。
+
+## 🎯 核心功能：系统检查工具
+
+**ant-eyes 的核心是强大的系统检查工具**，提供全面的服务器健康检查、安全审计和运维诊断能力。
+
+### 📊 10 大功能模块
+
+1. **系统基本信息检查** - CPU、内存、磁盘、网络等关键信息
+2. **系统异常访问检查** - SSH 登录监控、暴力破解检测、可疑连接分析
+3. **常用组件运行状态** - Oracle、MySQL、Redis、Kafka 等应用状态检测
+4. **系统服务部署信息** - 运行中的服务、监听端口、Docker 容器状态
+5. **系统安全情况检查** - 防火墙、SELinux、用户权限、文件安全审计
+6. **网络诊断工具** - Ping、Telnet、DNS 解析、端口扫描、网速测试、防火墙管理
+7. **Crontab 定时任务管理** - 查看、添加、删除定时任务，支持常用模板
+8. **NTP/Chrony 时间同步** - 管理时间同步服务，同步系统时间
+9. **磁盘分区挂载工具** - MBR/GPT 分区识别、挂载、文件系统管理
+10. **磁盘 I/O 性能检查** - iostat 实时监控、fio 基准测试、SMART 健康检查
+
+### 🚀 快速使用系统检查工具
+
+```bash
+# 通过 npm 运行（推荐）
+npx ant-eyes-install check
+
+# 或直接执行脚本
+sudo bash server_check.sh
+```
+
+**特点：**
+- ✅ 交互式菜单，易于使用
+- ✅ 支持报告导出功能
+- ✅ 支持多种 Linux 发行版（CentOS、Ubuntu、Kylin、UOS）
+- ✅ 完整的系统安全检查能力
+- ✅ 强大的网络诊断工具集
+
+---
+
+## 📦 快速安装
+
+通过 npm 快速使用所有工具，无需克隆仓库：
+
+```bash
+# 系统检查（核心功能）
+npx ant-eyes-install check
+
+# 安装单个服务
+npx ant-eyes-install redis
+
+# 批量安装多个服务
+npx ant-eyes-install redis mysql nginx
+
+# 使用 Docker Compose 配置
+npx ant-eyes-install --compose redis mysql
+
+# 列出所有可用服务
+npx ant-eyes-install --list
+```
+
+---
+
+## 🛠️ 辅助工具：服务安装脚本
+
+除了核心的系统检查工具，ant-eyes 还提供了一键安装常用服务的脚本。
+
+### 数据库
+- **redis** - 内存数据库（含鉴权配置）
+- **mysql** - 关系型数据库（含鉴权配置）
+- **postgresql** - 高级关系型数据库（含鉴权配置）
+- **mongodb** - NoSQL 文档数据库（含鉴权配置）
+
+### Web 服务
+- **nginx** - 高性能 Web 服务器和反向代理
+
+### 存储
+- **minio** - 对象存储服务，S3 兼容（含鉴权配置）
+
+### 开发工具
+- **nvm** - Node.js 版本管理器 + Node.js v20 LTS
+- **python** - Python 3.11 + uv 包管理器
+- **docker** - Docker CE + Docker Compose
+
+### 证书管理
+- **certbot** - Let's Encrypt 自动证书获取
+- **renew-cert** - 证书自动续期
+- **manage-cert** - 证书管理工具
+
+### 数据治理
+- **spark** - Apache Spark 大数据处理（单机模式）
+- **flink** - Apache Flink 流处理（单机模式）
+- **doris** - Apache Doris OLAP 分析（单机模式）
+
+---
 
 ## 📁 项目结构
 
 ```
-shell_collections/
-├── README.md                    # 本文件 - 项目概述
+ant-eyes/
+├── server_check.sh                 # ★ 核心：系统检查工具
+├── package.json                    # npm 包配置
+├── bin/install.js                  # CLI 入口
 │
-└── 📁 installation/             # 统一安装脚本入口
-    ├── README.md                # 导航指南
-    │
-    ├── 📁 centos/               # CentOS 7+ 脚本集（6 个）
-    │   ├── README.md
-    │   ├── install_docker.sh
-    │   ├── install_nginx.sh
+└── installation/                   # 服务安装脚本
+    ├── services/                   # 统一安装脚本（自动检测系统）
+    │   ├── install_redis.sh
     │   ├── install_mysql.sh
     │   ├── install_postgresql.sh
     │   ├── install_mongodb.sh
-    │   └── install_redis.sh
-    │
-    ├── 📁 ubuntu/               # Ubuntu 18.04+ 脚本集（6 个）
-    │   ├── README.md
-    │   ├── install_docker.sh
     │   ├── install_nginx.sh
-    │   ├── install_mysql.sh
-    │   ├── install_postgresql.sh
-    │   ├── install_mongodb.sh
-    │   └── install_redis.sh
+    │   ├── install_minio.sh
+    │   ├── install_nvm.sh
+    │   ├── install_python.sh
+    │   └── install_docker.sh
     │
-    ├── 📁 kylin/                # 麒麟 Linux 脚本集（6 个）
-    │   ├── README.md
-    │   ├── install_docker.sh
-    │   ├── install_nginx.sh
-    │   ├── install_mysql.sh
-    │   ├── install_postgresql.sh
-    │   ├── install_mongodb.sh
-    │   └── install_redis.sh
-    │
-    ├── 📁 docker-compose/       # Docker Compose 配置（6 个）
-    │   ├── README.md
+    ├── docker-compose/             # Docker Compose 配置
     │   ├── mysql/
     │   ├── postgresql/
     │   ├── mongodb/
     │   ├── redis/
-    │   ├── rabbitmq/
     │   └── minio/
     │
-    └── 📁 utils/                # 工具脚本和框架
-        ├── README.md
-        ├── 📁 certificate/      # SSL/TLS 证书管理（3 个脚本）
-        │   ├── README.md
-        │   ├── install_certbot.sh
-        │   ├── manage_certificates.sh
-        │   └── renew_certificates.sh
-        │
-        └── 📁 data_governance/  # 大数据框架（3 个脚本）
-            ├── README.md
-            ├── install_doris.sh
-            ├── install_flink.sh
-            └── install_spark.sh
+    └── utils/                      # 工具脚本
+        ├── certificate/            # SSL/TLS 证书管理
+        └── data_governance/        # 数据治理框架
 ```
-
-## ✨ 项目特点
-
-### 🎯 核心优势
-
-- **完全独立** - 每个脚本都是独立的，无外部库依赖
-- **直接可执行** - 拿来即用，无需任何配置或依赖安装
-- **多系统支持** - 适配 CentOS 7+、Ubuntu 18.04+、麒麟 Linux
-- **生产就绪** - 包含错误处理、服务验证、健康检查
-- **国内镜像** - 集成国内多个源加速下载（阿里云、清华、网易等）
-- **标准化设计** - 所有脚本遵循统一的结构和规范
-
-### 🛠️ 支持的服务
-
-#### 核心服务（跨平台支持）
-
-| 服务 | CentOS | Ubuntu | Kylin | 类型 |
-|------|--------|--------|-------|------|
-| Docker | ✅ | ✅ | ✅ | 容器化平台 |
-| Nginx | ✅ | ✅ | ✅ | Web 服务器 |
-| MySQL | ✅ | ✅ | ✅ | 关系型数据库 |
-| PostgreSQL | ✅ | ✅ | ✅ | 高级关系型数据库 |
-| MongoDB | ✅ | ✅ | ✅ | NoSQL 数据库 |
-| Redis | ✅ | ✅ | ✅ | 内存数据库 |
-
-**核心脚本总计：18 个** (3 个系统 × 6 个服务)
-
-#### 工具脚本和框架
-
-| 脚本/框架 | 位置 | 说明 |
-|---------|------|------|
-| Docker Compose | 根目录 | Docker Compose 独立安装脚本 |
-| **证书管理** | `utils/certificate/` |  |
-| - Certbot | `utils/certificate/install_certbot.sh` | Let's Encrypt 自动证书 |
-| - 证书管理 | `utils/certificate/manage_certificates.sh` | SSL 证书日常管理 |
-| - 证书续期 | `utils/certificate/renew_certificates.sh` | 自动续期工具 |
-| **数据治理** | `utils/data_governance/` |  |
-| - Doris | `utils/data_governance/install_doris.sh` | 分析数据库 |
-| - Flink | `utils/data_governance/install_flink.sh` | 流处理框架 |
-| - Spark | `utils/data_governance/install_spark.sh` | 大数据处理框架 |
-
-**工具脚本总计：7 个**
-
-## 🚀 快速开始
-
-### 选择正确的脚本版本
-
-首先确定您的操作系统：
-
-```bash
-# 查看系统信息
-cat /etc/os-release
-
-# 或者
-lsb_release -a
-```
-
-然后选择对应目录中的脚本：
-
-- **CentOS/RHEL 7+** → `centos/` 目录
-- **Ubuntu 18.04+** → `ubuntu/` 目录
-- **麒麟 Linux** → `kylin/` 目录
-
-### 执行脚本
-
-```bash
-# 进入 installation 目录
-cd installation
-
-# 以 Docker 为例，在 Ubuntu 上安装：
-cd ubuntu
-sudo bash install_docker.sh
-
-# 或者直接执行：
-sudo bash installation/ubuntu/install_docker.sh
-```
-
-## 📖 快速导航
-
-**进入 installation 目录后：**
-
-- **系统指南**：`centos/README.md`、`ubuntu/README.md`、`kylin/README.md`
-- **Docker 快速启动**：`docker-compose/README.md`
-- **工具脚本**：`utils/README.md`
-- **证书管理**：`utils/certificate/README.md`
-- **大数据框架**：`utils/data_governance/README.md`
-- **安装导航**：`README.md`（installation 目录下）
-
-## 🔄 典型使用场景
-
-### 场景 1：部署完整的 Web 服务栈
-
-```bash
-# 以 Ubuntu 为例
-cd ubuntu/
-
-# 1. 安装容器运行时
-sudo bash install_docker.sh
-
-# 2. 安装 Web 服务器
-sudo bash install_nginx.sh
-
-# 3. 安装数据库
-sudo bash install_postgresql.sh
-
-# 4. 安装缓存
-sudo bash install_redis.sh
-```
-
-## ⚙️ 脚本特性详解
-
-### 标准化结构
-
-所有脚本都遵循相同的执行流程：
-
-1. **check_root()** - 验证 root 权限
-2. **安装步骤** - 系统相关的安装逻辑
-3. **配置步骤** - 应用特定的配置
-4. **start_service()** - 启动服务并启用自启动
-5. **verify()** - 验证安装结果
-
-### 彩色日志输出
-
-- 🔵 `[INFO]` - 信息（蓝色）
-- 🟢 `[SUCCESS]` - 成功（绿色）
-- 🟡 `[WARN]` - 警告（黄色）
-- 🔴 `[ERROR]` - 错误（红色）
-
-## 🔐 安全建议
-
-1. **在生产前测试** - 先在测试环境验证脚本
-2. **审查脚本内容** - 运行任何脚本前都要查看其代码
-3. **定期更新** - 检查新版本的脚本
 
 ---
 
-**项目最后更新**：2025年1月21日
-**版本**：1.0.0
-**最低要求**：root 权限、网络连接
+## 🔄 典型使用场景
+
+### 场景 1：系统健康检查（核心功能）
+
+```bash
+# 运行系统检查工具
+npx ant-eyes-install check
+
+# 选择功能：
+# 1. 完整检查 - 一次性检查所有项目
+# 2. 系统信息 - 查看 CPU、内存、磁盘等
+# 3. 安全审计 - 检查防火墙、用户权限等
+# 4. 网络诊断 - Ping、端口扫描、DNS 解析
+# 5. 性能分析 - 磁盘 I/O、网络速度测试
+```
+
+### 场景 2：搭建 Web 后端环境
+
+```bash
+npx ant-eyes-install docker nginx mysql redis
+```
+
+### 场景 3：搭建数据分析环境
+
+```bash
+npx ant-eyes-install spark flink doris
+```
+
+### 场景 4：配置 SSL 证书
+
+```bash
+npx ant-eyes-install certbot
+```
+
+---
+
+## ✨ 安装脚本特性（v2.0.0）
+
+### 🎯 统一脚本，自动检测系统
+
+所有 `services/` 目录下的脚本都内置了系统自动检测：
+
+- ✅ 自动识别 CentOS/Ubuntu/Kylin
+- ✅ 自动选择正确的包管理器（yum/apt）
+- ✅ 自动配置对应的镜像源
+- ✅ 一个脚本，全平台通用
+
+### 🔐 强制鉴权配置
+
+所有数据库和存储服务强制设置密码：
+
+- **Redis** - 强制输入不少于 6 位密码
+- **MySQL** - 强制输入不少于 8 位 root 密码
+- **PostgreSQL** - 强制输入不少于 8 位密码
+- **MongoDB** - 强制输入不少于 8 位 admin 密码
+- **MinIO** - 强制输入 root 用户名和密码
+
+### 📝 配置存档
+
+安装完成后，配置信息自动保存到 `/etc/ant-eyes/<service>.conf`，方便后续查阅和管理。
+
+---
+
+## 🔐 安全建议
+
+1. **以 root 身份运行** - 系统检查工具需要 root 权限获取完整信息
+2. **定期健康检查** - 建议每周运行一次系统检查工具
+3. **在生产前测试** - 安装脚本先在测试环境验证
+4. **审查脚本内容** - 运行任何脚本前都要查看其代码
+5. **保护配置文件** - `/etc/ant-eyes/` 下的配置文件包含敏感信息
+
+---
+
+## 📦 npm 包信息
+
+- **包名**: `ant-eyes-install`
+- **版本**: 1.0.2
+- **npm 地址**: https://www.npmjs.com/package/ant-eyes-install
+
+---
+
+**项目版本**：v2.0.0  
+**最后更新**：2026年4月1日  
+**最低要求**：root 权限、网络连接、Node.js 14+（仅 npm 方式需要）

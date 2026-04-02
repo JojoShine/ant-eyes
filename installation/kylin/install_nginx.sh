@@ -46,6 +46,63 @@ check_kylin_system() {
     fi
 }
 
+cleanup_yum_repos() {
+    log_info "清理被破坏的 yum 源配置..."
+
+    # 检查是否有 CentOS 相关的源配置
+    if ls /etc/yum.repos.d/*.repo 2>/dev/null | grep -qi "centos\|vault"; then
+        log_warn "检测到 CentOS 源配置，即将清理..."
+        rm -f /etc/yum.repos.d/*.repo
+        log_info "yum 源文件已删除，清除缓存..."
+        yum clean all 2>/dev/null || true
+    fi
+
+    # 检查是否有任何有效的源配置
+    if ! ls /etc/yum.repos.d/*.repo 2>/dev/null | grep -v "CentOS\|Vault" >/dev/null 2>&1; then
+        log_warn "未检测到有效的 yum 源配置，为 Kylin 创建官方源..."
+
+        # 为 Kylin 创建源配置（使用 OpenEuler 源，Kylin 基于 OpenEuler 20.03 LTS）
+        mkdir -p /etc/yum.repos.d
+        cat > /etc/yum.repos.d/kylin.repo <<KYLINREPO
+[kylin-base]
+name=Kylin Linux - Base (OpenEuler 20.03 LTS)
+baseurl=https://repo.openeuler.org/openEuler-20.03-LTS/OS/\$basearch/
+        https://mirrors.huaweicloud.com/openeuler/openEuler-20.03-LTS/OS/\$basearch/
+        https://mirrors.aliyun.com/openeuler/openEuler-20.03-LTS/OS/\$basearch/
+gpgcheck=0
+enabled=1
+
+[kylin-updates]
+name=Kylin Linux - Updates (OpenEuler 20.03 LTS)
+baseurl=https://repo.openeuler.org/openEuler-20.03-LTS/updates/\$basearch/
+        https://mirrors.huaweicloud.com/openeuler/openEuler-20.03-LTS/updates/\$basearch/
+        https://mirrors.aliyun.com/openeuler/openEuler-20.03-LTS/updates/\$basearch/
+gpgcheck=0
+enabled=1
+
+[kylin-extras]
+name=Kylin Linux - Extras (OpenEuler 20.03 LTS)
+baseurl=https://repo.openeuler.org/openEuler-20.03-LTS/extras/\$basearch/
+        https://mirrors.huaweicloud.com/openeuler/openEuler-20.03-LTS/extras/\$basearch/
+gpgcheck=0
+enabled=1
+KYLINREPO
+        log_success "Kylin 源配置已创建（基于 OpenEuler 20.03 LTS）"
+    fi
+
+    # 重建 yum 缓存，使用系统默认源或恢复的源
+    log_info "重建 yum 缓存..."
+    yum clean all 2>/dev/null || true
+    yum makecache 2>/dev/null || true
+
+    # 验证源是否可用
+    if yum repolist 2>/dev/null | grep -q "kylin\|Kylin"; then
+        log_success "Kylin 官方源已恢复，可以继续安装"
+    else
+        log_warn "yum 源检测完成，继续尝试安装..."
+    fi
+}
+
 install_nginx() {
     log_info "安装 Nginx..."
     yum install -y nginx
@@ -112,6 +169,7 @@ main() {
     print_header
     check_root
     check_kylin_system
+    cleanup_yum_repos
     install_nginx
     configure_nginx
     configure_firewall

@@ -3,14 +3,16 @@
 ################################################################################
 # Apache Spark 统一安装/修复脚本
 # 支持 CentOS/RHEL 7+, Ubuntu 18.04+, Kylin, UOS
+#
+# ⚠️  重要说明: 本脚本仅支持单机模式安装
+#     不支持多机器集群部署，仅用于单节点 Spark Standalone 环境
+#
 # 功能:
 #   - 安装 Apache Spark 3.x (原生安装, 非Docker)
-#   - 交互式选择单机模式或集群模式
-#   - 集群模式: 选择 Master 或 Worker 节点
+#   - 单机 Standalone 模式
 #   - 自动检测或安装 Java 环境
 #   - 配置 Spark 参数 (内存、核心数等)
 #   - 配置 systemd 服务
-#   - 密码复杂度验证 (集群模式)
 #   - 配置开机自启
 #   - 修复已安装的 Spark 配置问题（自动检测）
 #   - 智能内存配置（根据系统自动计算）
@@ -21,7 +23,7 @@
 #   sudo bash install_spark.sh --auto-config      # 自动配置已有安装
 #
 # 作者: Shell Collections Team
-# 版本: 2.0.0 (统一版)
+# 版本: 2.1.0 (单机版)
 ################################################################################
 
 set -e
@@ -33,34 +35,12 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# 导入进度显示库
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -f "$SCRIPT_DIR/progress_lib.sh" ]]; then
-    source "$SCRIPT_DIR/progress_lib.sh"
-else
-    # 如果找不到库文件，定义简单的进度函数
-    progress_init() { :; }
-    progress_step() { echo "→ $2"; }
-    progress_complete() { echo "安装完成"; }
-    progress_fail() { echo "错误: $1"; }
-    progress_status() { echo "⟳ $1"; }
-fi
-
-# 导入前置依赖检查库
-if [[ -f "$SCRIPT_DIR/dependencies_lib.sh" ]]; then
-    source "$SCRIPT_DIR/dependencies_lib.sh"
-    source "$SCRIPT_DIR/dependencies_config.sh"
-fi
 
 
 # 配置变量
 SPARK_VERSION="3.4.1"
 SPARK_HOME="/opt/spark"
 SPARK_USER="spark"
-SPARK_PASSWORD=""
-DEPLOYMENT_MODE="standalone"   # standalone 或 cluster
-NODE_ROLE="master"              # master 或 worker
-MASTER_IP=""
 SPARK_MEMORY=""
 SPARK_CORES=""
 JAVA_HOME=""
@@ -342,72 +322,8 @@ validate_password() {
 # 交互式配置
 interactive_config() {
     echo ""
-    log_info "Spark 安装配置"
+    log_info "Spark 安装配置 (单机模式)"
     echo ""
-
-    # 选择部署模式
-    echo -e "${BLUE}请选择部署模式:${NC}"
-    echo "  1) 单机模式 (Standalone - 推荐本地测试)"
-    echo "  2) 集群模式 (Cluster)"
-    read -p "请选择 [1-2, 默认 1]: " mode_choice
-
-    case $mode_choice in
-        2)
-            DEPLOYMENT_MODE="cluster"
-            log_info "选择模式: 集群模式"
-
-            # 选择节点角色
-            echo ""
-            echo -e "${BLUE}请选择节点角色:${NC}"
-            echo "  1) Master 节点"
-            echo "  2) Worker 节点"
-            read -p "请选择 [1-2, 默认 1]: " role_choice
-
-            case $role_choice in
-                2)
-                    NODE_ROLE="worker"
-                    log_info "选择角色: Worker 节点"
-
-                    # 设置 Master IP
-                    echo ""
-                    read -p "请输入 Master 节点 IP 地址: " MASTER_IP
-                    if [[ -z "$MASTER_IP" ]]; then
-                        log_error "Master IP 不能为空"
-                        exit 1
-                    fi
-                    log_info "Master IP: $MASTER_IP"
-                    ;;
-                *)
-                    NODE_ROLE="master"
-                    log_info "选择角色: Master 节点"
-                    ;;
-            esac
-
-            # 集群模式设置 Spark 密码 (可选)
-            echo ""
-            read -p "是否为 Spark 用户设置密码？(y/n) [n]: " -r
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                while true; do
-                    read -sp "请输入 Spark 用户密码: " SPARK_PASSWORD
-                    echo ""
-                    if validate_password "$SPARK_PASSWORD"; then
-                        read -sp "请再次输入密码确认: " password_confirm
-                        echo ""
-                        if [[ "$SPARK_PASSWORD" == "$password_confirm" ]]; then
-                            log_success "密码设置成功"
-                            break
-                        else
-                            log_error "两次密码不一致，请重新输入"
-                        fi
-                    fi
-                done
-            fi
-            ;;
-        *)
-            DEPLOYMENT_MODE="standalone"
-            log_info "选择模式: 单机模式"
-            ;;
-    esac
 
     # 配置内存
     echo ""
@@ -509,45 +425,7 @@ EOF
     chmod 644 "$SPARK_ENV"
     chown "$SPARK_USER:$SPARK_USER" "$SPARK_ENV"
 
-    # 如果是集群模式，配置 Master 或 Worker
-    if [[ "$DEPLOYMENT_MODE" == "cluster" ]]; then
-        configure_cluster_mode
-    fi
-
     log_success "Spark 配置完成"
-}
-
-# 配置集群模式
-configure_cluster_mode() {
-    log_info "配置集群模式..."
-
-    local SLAVES_FILE="$SPARK_HOME/conf/slaves"
-
-    if [[ "$NODE_ROLE" == "master" ]]; then
-        # Master 节点配置
-        log_info "配置 Master 节点..."
-
-        # 创建 slaves 文件 (Worker 节点列表)
-        if [[ ! -f "$SLAVES_FILE.template" ]]; then
-            cat > "$SLAVES_FILE" << 'EOF'
-# 在此处列出所有 Worker 节点
-# 格式: worker-hostname 或 worker-ip
-# 例如:
-# 192.168.1.101
-# 192.168.1.102
-EOF
-        fi
-
-        log_info "请编辑 $SLAVES_FILE 添加 Worker 节点"
-
-    else
-        # Worker 节点配置
-        log_info "配置 Worker 节点 (Master: $MASTER_IP)..."
-
-        local SPARK_ENV="$SPARK_HOME/conf/spark-env.sh"
-        echo "export SPARK_MASTER_HOST=$MASTER_IP" >> "$SPARK_ENV"
-        echo "export SPARK_MASTER_PORT=7077" >> "$SPARK_ENV"
-    fi
 }
 
 # 配置 systemd 服务
@@ -556,11 +434,6 @@ configure_systemd_service() {
 
     local SERVICE_FILE="/etc/systemd/system/spark.service"
     local SPARK_START="$SPARK_HOME/sbin/start-master.sh"
-
-    # 确定启动命令
-    if [[ "$DEPLOYMENT_MODE" == "cluster" ]] && [[ "$NODE_ROLE" == "worker" ]]; then
-        SPARK_START="$SPARK_HOME/sbin/start-worker.sh spark://$MASTER_IP:7077"
-    fi
 
     cat > "$SERVICE_FILE" << EOF
 [Unit]
@@ -608,53 +481,6 @@ start_spark_service() {
     fi
 }
 
-# 测试集群连通性
-test_cluster_connectivity() {
-    log_info "测试集群连通性..."
-
-    if [[ "$DEPLOYMENT_MODE" == "cluster" ]] && [[ "$NODE_ROLE" == "worker" ]]; then
-        # Worker 节点：测试到 Master 的连接
-        log_info "测试到 Master ($MASTER_IP) 的连接..."
-
-        # 测试 Master 通信端口 (7077)
-        if timeout 3 bash -c "echo > /dev/tcp/$MASTER_IP/7077" 2>/dev/null; then
-            log_success "✓ 可连接 Master 通信端口 (7077)"
-        else
-            log_warn "✗ 无法连接 Master 通信端口 (7077)"
-        fi
-
-        # 测试 Web UI 端口 (8080)
-        if timeout 3 bash -c "echo > /dev/tcp/$MASTER_IP/8080" 2>/dev/null; then
-            log_success "✓ 可连接 Master Web UI 端口 (8080)"
-        else
-            log_warn "✗ 无法连接 Master Web UI 端口 (8080)"
-        fi
-    fi
-}
-
-# 获取 Spark 集群状态
-get_cluster_status() {
-    log_info "获取集群状态..."
-
-    if [[ "$DEPLOYMENT_MODE" == "cluster" ]] && [[ "$NODE_ROLE" == "master" ]]; then
-        # Master 节点：通过 REST API 获取集群状态
-        local response=$(curl -s --connect-timeout 5 http://localhost:8080/api/v1/statuses 2>/dev/null)
-
-        if [[ -n "$response" ]]; then
-            # 尝试解析 JSON 获取 Worker 信息
-            local workers=$(echo "$response" | grep -oP '"workerCount":\s*\K\d+' | head -1)
-            local cores=$(echo "$response" | grep -oP '"coresUsed":\s*\K\d+' | head -1)
-
-            if [[ -n "$workers" ]]; then
-                log_success "✓ 已注册 Worker: $workers 个"
-                log_info "使用核心数: $cores"
-            fi
-        else
-            log_warn "⚠ 无法获取集群状态 (REST API 不可用)"
-        fi
-    fi
-}
-
 # 验证安装
 verify_installation() {
     log_info "验证 Spark 安装..."
@@ -672,13 +498,6 @@ verify_installation() {
             log_warn "Spark 进程未运行，请检查日志"
         fi
 
-        # 集群模式下进行额外的连通性测试
-        if [[ "$DEPLOYMENT_MODE" == "cluster" ]]; then
-            echo ""
-            test_cluster_connectivity
-            get_cluster_status
-        fi
-
         return 0
     else
         log_error "Spark 验证失败"
@@ -688,23 +507,19 @@ verify_installation() {
 
 # 配置防火墙
 configure_firewall() {
-    if [[ "$DEPLOYMENT_MODE" == "cluster" ]]; then
-        log_info "配置防火墙..."
+    log_info "配置防火墙..."
 
-        if command -v firewall-cmd &> /dev/null; then
-            # CentOS/RHEL
-            firewall-cmd --permanent --add-port=7077/tcp  # Master 通信
-            firewall-cmd --permanent --add-port=8080/tcp  # Master Web UI
-            firewall-cmd --permanent --add-port=8081/tcp  # Worker Web UI
-            firewall-cmd --reload
-            log_success "防火墙规则已添加 (yum系统)"
-        elif command -v ufw &> /dev/null; then
-            # Ubuntu
-            ufw allow 7077/tcp
-            ufw allow 8080/tcp
-            ufw allow 8081/tcp
-            log_success "防火墙规则已添加 (apt系统)"
-        fi
+    if command -v firewall-cmd &> /dev/null; then
+        # CentOS/RHEL
+        firewall-cmd --permanent --add-port=7077/tcp  # Master 通信
+        firewall-cmd --permanent --add-port=8080/tcp  # Master Web UI
+        firewall-cmd --reload
+        log_success "防火墙规则已添加 (yum系统)"
+    elif command -v ufw &> /dev/null; then
+        # Ubuntu
+        ufw allow 7077/tcp
+        ufw allow 8080/tcp
+        log_success "防火墙规则已添加 (apt系统)"
     fi
 }
 
@@ -725,45 +540,7 @@ Spark 用户: $SPARK_USER
 Java 版本: $(java -version 2>&1 | grep -oP 'version "\K[^"]+')
 
 【部署模式】
-模式: $DEPLOYMENT_MODE
-$(if [[ "$DEPLOYMENT_MODE" == "cluster" ]]; then echo "节点角色: $NODE_ROLE"; if [[ "$NODE_ROLE" == "worker" ]]; then echo "Master IP: $MASTER_IP"; fi; fi)
-
-【集群状态】
-$(if [[ "$DEPLOYMENT_MODE" == "cluster" ]]; then
-    if [[ "$NODE_ROLE" == "master" ]]; then
-        local master_response=\$(curl -s --connect-timeout 5 http://localhost:8080/api/v1/statuses 2>/dev/null)
-        if [[ -n "\$master_response" ]]; then
-            local master_workers=\$(echo "\$master_response" | grep -oP '"workerCount":\s*\K\d+' | head -1)
-            local master_cores=\$(echo "\$master_response" | grep -oP '"coresUsed":\s*\K\d+' | head -1)
-            echo "连接状态: ✓ Master 正在运行"
-            echo "已注册 Worker: \${master_workers:-0} 个"
-            echo "使用核心数: \${master_cores:-0}"
-        else
-            echo "连接状态: ✗ 无法获取集群状态"
-        fi
-        echo ""
-        echo "【集群测试提示】"
-        echo "当前 Master 已启动，等待 Worker 节点连接。"
-        echo "请在 Worker 节点执行安装脚本并指向此 Master IP: \$(hostname -I | awk '{print \$1}')"
-    elif [[ "$NODE_ROLE" == "worker" ]]; then
-        local worker_connectable_master=\$(timeout 3 bash -c "echo > /dev/tcp/$MASTER_IP/7077" 2>/dev/null && echo "yes" || echo "no")
-        local worker_connectable_web=\$(timeout 3 bash -c "echo > /dev/tcp/$MASTER_IP/8080" 2>/dev/null && echo "yes" || echo "no")
-        echo "节点角色: Worker"
-        echo "Master: $MASTER_IP"
-        if [[ "\$worker_connectable_master" == "yes" ]] && [[ "\$worker_connectable_web" == "yes" ]]; then
-            echo "连接状态: ✓ 可连接到 Master"
-        else
-            echo "连接状态: ✗ 无法连接到 Master (7077: \$worker_connectable_master, 8080: \$worker_connectable_web)"
-        fi
-        echo ""
-        echo "【集群测试提示】"
-        echo "Worker 已启动并尝试连接 Master。"
-        echo "请在 Master 的 Web UI 中确认此节点已注册："
-        echo "http://$MASTER_IP:8080/"
-    fi
-else
-    echo "部署模式: 单机模式 (无集群状态)"
-fi)
+模式: 单机 Standalone 模式
 
 【性能配置】
 工作内存: $SPARK_MEMORY
@@ -796,23 +573,15 @@ fi)
 【配置文件】
 - 环境变量: $SPARK_HOME/conf/spark-env.sh
 - 日志位置: $SPARK_HOME/logs/
-$(if [[ "$DEPLOYMENT_MODE" == "cluster" ]]; then echo "- Worker节点: $SPARK_HOME/conf/slaves"; fi)
 
 【后续步骤】
-$(if [[ "$DEPLOYMENT_MODE" == "cluster" ]] && [[ "$NODE_ROLE" == "master" ]]; then
-    echo "1. 编辑 $SPARK_HOME/conf/slaves 添加 Worker 节点"
-    echo "2. 在 Master 节点运行: $SPARK_HOME/sbin/start-all.sh"
-    echo "3. 在 Worker 节点运行: systemctl start spark"
-else
-    echo "1. Spark 单机模式已准备就绪"
-    echo "2. 可直接使用 spark-submit 提交应用"
-fi)
+1. Spark 单机模式已准备就绪
+2. 可直接使用 spark-submit 提交应用
 
 【安全建议】
 1. 定期更新 Spark 版本
-2. 限制网络访问 Web UI (8080/8081 端口)
-3. 集群环境下配置身份验证
-4. 监控 Spark 应用的内存使用
+2. 限制网络访问 Web UI (8080 端口)
+3. 监控 Spark 应用的内存使用
 
 【技术支持】
 官方文档: https://spark.apache.org/docs/latest/

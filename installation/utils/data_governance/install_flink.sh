@@ -3,10 +3,13 @@
 ################################################################################
 # Apache Flink 统一安装/修复脚本
 # 支持 CentOS/RHEL 7+, Ubuntu 18.04+, Kylin, UOS
+#
+# ⚠️  重要说明: 本脚本仅支持单机模式安装
+#     不支持多机器集群部署，仅用于单节点 Flink 本地环境
+#
 # 功能:
 #   - 安装 Apache Flink 1.18+ (原生安装, 非Docker)
-#   - 交互式选择单机模式或集群模式
-#   - 集群模式: 选择 JobManager 或 TaskManager 节点
+#   - 单机本地模式
 #   - 自动检测或安装 Java 环境
 #   - 配置 flink-conf.yaml 参数
 #   - 配置 systemd 服务
@@ -20,7 +23,7 @@
 #   sudo bash install_flink.sh --auto-config      # 自动配置已有安装
 #
 # 作者: Shell Collections Team
-# 版本: 2.0.0 (统一版)
+# 版本: 2.1.0 (单机版)
 ################################################################################
 
 set -e
@@ -32,33 +35,12 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# 导入进度显示库
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -f "$SCRIPT_DIR/progress_lib.sh" ]]; then
-    source "$SCRIPT_DIR/progress_lib.sh"
-else
-    # 如果找不到库文件，定义简单的进度函数
-    progress_init() { :; }
-    progress_step() { echo "→ $2"; }
-    progress_complete() { echo "安装完成"; }
-    progress_fail() { echo "错误: $1"; }
-    progress_status() { echo "⟳ $1"; }
-fi
-
-# 导入前置依赖检查库
-if [[ -f "$SCRIPT_DIR/dependencies_lib.sh" ]]; then
-    source "$SCRIPT_DIR/dependencies_lib.sh"
-    source "$SCRIPT_DIR/dependencies_config.sh"
-fi
 
 
 # 配置变量
 FLINK_VERSION="1.18.1"
 FLINK_HOME="/opt/flink"
 FLINK_USER="flink"
-DEPLOYMENT_MODE="local"        # local 或 cluster
-NODE_ROLE="jobmanager"         # jobmanager 或 taskmanager
-JOBMANAGER_IP="localhost"
 TASKMANAGER_SLOTS="4"
 TASKMANAGER_MEMORY="2g"
 JAVA_HOME=""
@@ -442,52 +424,8 @@ install_java() {
 # 交互式配置
 interactive_config() {
     echo ""
-    log_info "Flink 安装配置"
+    log_info "Flink 安装配置 (本地模式)"
     echo ""
-
-    # 选择部署模式
-    echo -e "${BLUE}请选择部署模式:${NC}"
-    echo "  1) 本地模式 (Local - 推荐本地测试)"
-    echo "  2) 集群模式 (Cluster - Standalone)"
-    read -p "请选择 [1-2, 默认 1]: " mode_choice
-
-    case $mode_choice in
-        2)
-            DEPLOYMENT_MODE="cluster"
-            log_info "选择模式: 集群模式"
-
-            # 选择节点角色
-            echo ""
-            echo -e "${BLUE}请选择节点角色:${NC}"
-            echo "  1) JobManager 节点"
-            echo "  2) TaskManager 节点"
-            read -p "请选择 [1-2, 默认 1]: " role_choice
-
-            case $role_choice in
-                2)
-                    NODE_ROLE="taskmanager"
-                    log_info "选择角色: TaskManager 节点"
-
-                    # 设置 JobManager IP
-                    echo ""
-                    read -p "请输入 JobManager 节点 IP 地址: " JOBMANAGER_IP
-                    if [[ -z "$JOBMANAGER_IP" ]]; then
-                        log_error "JobManager IP 不能为空"
-                        exit 1
-                    fi
-                    log_info "JobManager IP: $JOBMANAGER_IP"
-                    ;;
-                *)
-                    NODE_ROLE="jobmanager"
-                    log_info "选择角色: JobManager 节点"
-                    ;;
-            esac
-            ;;
-        *)
-            DEPLOYMENT_MODE="local"
-            log_info "选择模式: 本地模式"
-            ;;
-    esac
 
     # 配置 TaskManager 参数
     echo ""
@@ -574,7 +512,7 @@ configure_flink() {
 # Flink 配置文件
 
 # 主机名和端口
-jobmanager.rpc.address: $(hostname -I | awk '{print $1}')
+jobmanager.rpc.address: localhost
 jobmanager.rpc.port: 6123
 jobmanager.bind-host: 0.0.0.0
 
@@ -613,44 +551,7 @@ EOF
     chown "$FLINK_USER:$FLINK_USER" "$FLINK_CONF"
     chmod 644 "$FLINK_CONF"
 
-    # 如果是集群模式，配置特定节点
-    if [[ "$DEPLOYMENT_MODE" == "cluster" ]]; then
-        configure_cluster_mode
-    fi
-
     log_success "Flink 配置完成"
-}
-
-# 配置集群模式
-configure_cluster_mode() {
-    log_info "配置集群模式..."
-
-    if [[ "$NODE_ROLE" == "jobmanager" ]]; then
-        # JobManager 节点配置
-        log_info "配置 JobManager 节点..."
-
-        local MASTERS_FILE="$FLINK_HOME/conf/masters"
-        echo "$(hostname -I | awk '{print $1}'):8081" > "$MASTERS_FILE"
-
-        local WORKERS_FILE="$FLINK_HOME/conf/workers"
-        cat > "$WORKERS_FILE" << 'EOF'
-# 在此处列出所有 TaskManager 节点
-# 格式: taskmanager-hostname 或 taskmanager-ip
-# 例如:
-# 192.168.1.101
-# 192.168.1.102
-EOF
-
-        chown "$FLINK_USER:$FLINK_USER" "$MASTERS_FILE" "$WORKERS_FILE"
-        chmod 644 "$MASTERS_FILE" "$WORKERS_FILE"
-
-    else
-        # TaskManager 节点配置
-        log_info "配置 TaskManager 节点 (JobManager: $JOBMANAGER_IP)..."
-
-        local FLINK_ENV="$FLINK_HOME/conf/flink-conf.yaml"
-        echo "jobmanager.rpc.address: $JOBMANAGER_IP" >> "$FLINK_ENV"
-    fi
 }
 
 # 配置 systemd 服务
@@ -658,12 +559,7 @@ configure_systemd_service() {
     log_info "配置 systemd 服务..."
 
     local SERVICE_FILE="/etc/systemd/system/flink.service"
-
-    # 确定启动命令
     local EXEC_START="$FLINK_HOME/bin/start-cluster.sh"
-    if [[ "$DEPLOYMENT_MODE" == "cluster" ]] && [[ "$NODE_ROLE" == "taskmanager" ]]; then
-        EXEC_START="$FLINK_HOME/bin/taskmanager.sh start"
-    fi
 
     cat > "$SERVICE_FILE" << EOF
 [Unit]
@@ -711,54 +607,6 @@ start_flink_service() {
     fi
 }
 
-# 测试集群连通性
-test_cluster_connectivity() {
-    log_info "测试集群连通性..."
-
-    if [[ "$DEPLOYMENT_MODE" == "cluster" ]] && [[ "$NODE_ROLE" == "taskmanager" ]]; then
-        # TaskManager 节点：测试到 JobManager 的连接
-        log_info "测试到 JobManager ($JOBMANAGER_IP) 的连接..."
-
-        # 测试 RPC 端口 (6123)
-        if timeout 3 bash -c "echo > /dev/tcp/$JOBMANAGER_IP/6123" 2>/dev/null; then
-            log_success "✓ 可连接 JobManager RPC 端口 (6123)"
-        else
-            log_warn "✗ 无法连接 JobManager RPC 端口 (6123)"
-        fi
-
-        # 测试 Web UI 端口 (8081)
-        if timeout 3 bash -c "echo > /dev/tcp/$JOBMANAGER_IP/8081" 2>/dev/null; then
-            log_success "✓ 可连接 JobManager Web UI 端口 (8081)"
-        else
-            log_warn "✗ 无法连接 JobManager Web UI 端口 (8081)"
-        fi
-    fi
-}
-
-# 获取 Flink 集群状态
-get_cluster_status() {
-    log_info "获取集群状态..."
-
-    if [[ "$DEPLOYMENT_MODE" == "cluster" ]] && [[ "$NODE_ROLE" == "jobmanager" ]]; then
-        # JobManager 节点：通过 REST API 获取集群状态
-        local response=$(curl -s --connect-timeout 5 http://localhost:8081/overview 2>/dev/null)
-
-        if [[ -n "$response" ]]; then
-            # 解析 JSON 获取 TaskManager 数和可用 Slot 数
-            local taskmanagers=$(echo "$response" | grep -oP '"taskmanagers":\s*\K\d+' | head -1)
-            local slots=$(echo "$response" | grep -oP '"slots-available":\s*\K\d+' | head -1)
-            local total_slots=$(echo "$response" | grep -oP '"slots-total":\s*\K\d+' | head -1)
-
-            if [[ -n "$taskmanagers" ]]; then
-                log_success "✓ 已注册 TaskManager: $taskmanagers 个"
-                log_info "可用 Slot: $slots / $total_slots"
-            fi
-        else
-            log_warn "⚠ 无法获取集群状态 (REST API 不可用)"
-        fi
-    fi
-}
-
 # 验证安装
 verify_installation() {
     log_info "验证 Flink 安装..."
@@ -774,13 +622,6 @@ verify_installation() {
             log_success "Flink 进程正在运行"
         else
             log_warn "Flink 进程未运行，请检查日志"
-        fi
-
-        # 集群模式下进行额外的连通性测试
-        if [[ "$DEPLOYMENT_MODE" == "cluster" ]]; then
-            echo ""
-            test_cluster_connectivity
-            get_cluster_status
         fi
 
         return 0
@@ -825,46 +666,7 @@ Flink 用户: $FLINK_USER
 Java 版本: $(java -version 2>&1 | grep -oP 'version "\K[^"]+')
 
 【部署模式】
-模式: $DEPLOYMENT_MODE
-$(if [[ "$DEPLOYMENT_MODE" == "cluster" ]]; then echo "节点角色: $NODE_ROLE"; if [[ "$NODE_ROLE" == "taskmanager" ]]; then echo "JobManager IP: $JOBMANAGER_IP"; fi; fi)
-
-【集群状态】
-$(if [[ "$DEPLOYMENT_MODE" == "cluster" ]]; then
-    if [[ "$NODE_ROLE" == "jobmanager" ]]; then
-        local jm_response=\$(curl -s --connect-timeout 5 http://localhost:8081/overview 2>/dev/null)
-        if [[ -n "\$jm_response" ]]; then
-            local jm_taskmanagers=\$(echo "\$jm_response" | grep -oP '"taskmanagers":\s*\K\d+' | head -1)
-            local jm_slots=\$(echo "\$jm_response" | grep -oP '"slots-available":\s*\K\d+' | head -1)
-            local jm_total_slots=\$(echo "\$jm_response" | grep -oP '"slots-total":\s*\K\d+' | head -1)
-            echo "连接状态: ✓ JobManager 正在运行"
-            echo "已注册 TaskManager: \${jm_taskmanagers:-0} 个"
-            echo "可用 Slot 总数: \${jm_slots:-0} / \${jm_total_slots:-0}"
-        else
-            echo "连接状态: ✗ 无法获取集群状态"
-        fi
-        echo ""
-        echo "【集群测试提示】"
-        echo "当前 JobManager 已启动，等待 TaskManager 节点连接。"
-        echo "请在 TaskManager 节点执行安装脚本并指向此 JobManager IP: \$(hostname -I | awk '{print \$1}')"
-    elif [[ "$NODE_ROLE" == "taskmanager" ]]; then
-        local tm_connectable_rpc=\$(timeout 3 bash -c "echo > /dev/tcp/$JOBMANAGER_IP/6123" 2>/dev/null && echo "yes" || echo "no")
-        local tm_connectable_web=\$(timeout 3 bash -c "echo > /dev/tcp/$JOBMANAGER_IP/8081" 2>/dev/null && echo "yes" || echo "no")
-        echo "节点角色: TaskManager"
-        echo "JobManager: $JOBMANAGER_IP"
-        if [[ "\$tm_connectable_rpc" == "yes" ]] && [[ "\$tm_connectable_web" == "yes" ]]; then
-            echo "连接状态: ✓ 可连接到 JobManager"
-        else
-            echo "连接状态: ✗ 无法连接到 JobManager (RPC: \$tm_connectable_rpc, Web: \$tm_connectable_web)"
-        fi
-        echo ""
-        echo "【集群测试提示】"
-        echo "TaskManager 已启动并尝试连接 JobManager。"
-        echo "请在 JobManager 的 Web UI 中确认此节点已注册："
-        echo "http://$JOBMANAGER_IP:8081/#/task-managers"
-    fi
-else
-    echo "部署模式: 本地模式 (无集群状态)"
-fi)
+模式: 本地单机模式
 
 【性能配置】
 TaskManager Slot 数: $TASKMANAGER_SLOTS
@@ -893,18 +695,11 @@ TaskManager 内存: $TASKMANAGER_MEMORY
 
 【配置文件】
 - 主配置: $FLINK_HOME/conf/flink-conf.yaml
-$(if [[ "$DEPLOYMENT_MODE" == "cluster" ]] && [[ "$NODE_ROLE" == "jobmanager" ]]; then echo "- Masters 配置: $FLINK_HOME/conf/masters"; echo "- Workers 配置: $FLINK_HOME/conf/workers"; fi)
 - 日志位置: $FLINK_HOME/logs/
 
 【后续步骤】
-$(if [[ "$DEPLOYMENT_MODE" == "cluster" ]] && [[ "$NODE_ROLE" == "jobmanager" ]]; then
-    echo "1. 编辑 $FLINK_HOME/conf/workers 添加 TaskManager 节点"
-    echo "2. 在 JobManager 节点运行: $FLINK_HOME/bin/start-cluster.sh"
-    echo "3. 在 TaskManager 节点运行: systemctl start flink"
-else
-    echo "1. Flink $([ "$DEPLOYMENT_MODE" == "local" ] && echo "本地模式" || echo "集群模式")已准备就绪"
-    echo "2. 可直接使用 flink run 提交应用"
-fi)
+1. Flink 本地模式已准备就绪
+2. 可直接使用 flink run 提交应用
 
 【性能优化建议】
 1. 根据硬件调整 TaskManager 内存和 Slot 数
@@ -974,7 +769,7 @@ repair_flink_config() {
 # 修复日期: $(date '+%Y-%m-%d %H:%M:%S')
 
 # 主机名和端口
-jobmanager.rpc.address: \$(hostname -I | awk '{print \$1}')
+jobmanager.rpc.address: localhost
 jobmanager.rpc.port: 6123
 jobmanager.bind-host: 0.0.0.0
 

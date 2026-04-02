@@ -3,11 +3,13 @@
 ################################################################################
 # Apache Doris 统一安装/修复脚本
 # 支持 CentOS/RHEL 7+, Ubuntu 18.04+, Kylin, UOS
+#
+# ⚠️  重要说明: 本脚本仅支持单机模式安装
+#     不支持多机器集群部署，仅用于单节点 FE + BE 混合部署环境
+#
 # 功能:
 #   - 安装 Apache Doris 1.2+ (原生安装, 非Docker)
-#   - 交互式选择单节点或多节点集群
 #   - 单节点: FE + BE 混合部署
-#   - 多节点: 选择 FE (Frontend) / BE (Backend) / Observer 角色
 #   - 自动检测或安装 Java 环境
 #   - 配置 MySQL 兼容接口
 #   - 交互式设置数据库用户和密码
@@ -22,7 +24,7 @@
 #   sudo bash install_doris.sh --auto-config      # 自动配置已有安装
 #
 # 作者: Shell Collections Team
-# 版本: 2.0.0 (统一版)
+# 版本: 2.1.0 (单机版)
 ################################################################################
 
 set -e
@@ -34,33 +36,10 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# 导入进度显示库
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -f "$SCRIPT_DIR/progress_lib.sh" ]]; then
-    source "$SCRIPT_DIR/progress_lib.sh"
-else
-    # 如果找不到库文件，定义简单的进度函数
-    progress_init() { :; }
-    progress_step() { echo "→ $2"; }
-    progress_complete() { echo "安装完成"; }
-    progress_fail() { echo "错误: $1"; }
-    progress_status() { echo "⟳ $1"; }
-fi
-
-# 导入前置依赖检查库
-if [[ -f "$SCRIPT_DIR/dependencies_lib.sh" ]]; then
-    source "$SCRIPT_DIR/dependencies_lib.sh"
-    source "$SCRIPT_DIR/dependencies_config.sh"
-fi
-
-
-
 # 配置变量
 DORIS_VERSION="2.0.1"
 DORIS_HOME="/opt/doris"
 DORIS_USER="doris"
-DEPLOYMENT_MODE="single"       # single 或 cluster
-NODE_TYPE="fe"                  # fe, be, observer
 FE_PORT=9010
 FE_QUERY_PORT=9030
 FE_HTTP_PORT=8030
@@ -346,49 +325,8 @@ validate_password() {
 # 交互式配置
 interactive_config() {
     echo ""
-    log_info "Doris 安装配置"
+    log_info "Doris 安装配置 (单节点 FE + BE 混合部署)"
     echo ""
-
-    # 选择部署模式
-    echo -e "${BLUE}请选择部署模式:${NC}"
-    echo "  1) 单节点 (Single - 推荐本地测试)"
-    echo "  2) 集群 (Cluster)"
-    read -p "请选择 [1-2, 默认 1]: " mode_choice
-
-    case $mode_choice in
-        2)
-            DEPLOYMENT_MODE="cluster"
-            log_info "选择模式: 集群模式"
-
-            # 选择节点类型
-            echo ""
-            echo -e "${BLUE}请选择节点类型:${NC}"
-            echo "  1) FE (Frontend - 查询规划、优化和执行协调)"
-            echo "  2) BE (Backend - 数据存储和查询执行)"
-            echo "  3) Observer (观察者 FE - 无投票权)"
-            read -p "请选择 [1-3, 默认 1]: " type_choice
-
-            case $type_choice in
-                2)
-                    NODE_TYPE="be"
-                    log_info "选择节点类型: BE (Backend)"
-                    ;;
-                3)
-                    NODE_TYPE="observer"
-                    log_info "选择节点类型: Observer"
-                    ;;
-                *)
-                    NODE_TYPE="fe"
-                    log_info "选择节点类型: FE (Frontend)"
-                    ;;
-            esac
-            ;;
-        *)
-            DEPLOYMENT_MODE="single"
-            log_info "选择模式: 单节点模式"
-            NODE_TYPE="fe"
-            ;;
-    esac
 
     # 设置数据库密码
     echo ""
@@ -469,14 +407,9 @@ install_doris_binary() {
 
 # 配置 Doris
 configure_doris() {
-    log_info "配置 Doris..."
+    log_info "配置 Doris (单节点模式)..."
 
-    # 根据部署模式和节点类型配置
-    if [[ "$DEPLOYMENT_MODE" == "single" ]]; then
-        configure_single_node
-    else
-        configure_cluster_node
-    fi
+    configure_single_node
 
     log_success "Doris 配置完成"
 }
@@ -525,95 +458,14 @@ EOF
 }
 
 # 配置集群节点
-configure_cluster_node() {
-    log_info "配置集群节点 (类型: $NODE_TYPE)..."
-
-    if [[ "$NODE_TYPE" == "fe" ]] || [[ "$NODE_TYPE" == "observer" ]]; then
-        local FE_CONF="$DORIS_HOME/fe/conf/fe.conf"
-
-        cat >> "$FE_CONF" << EOF
-
-# 集群 FE 配置
-meta_dir = $DORIS_HOME/doris-meta
-http_port = $FE_HTTP_PORT
-rpc_port = $FE_PORT
-query_port = $FE_QUERY_PORT
-edit_log_port = $((FE_PORT + 1))
-
-# 日志配置
-log_dir = $DORIS_HOME/log
-sys_log_level = INFO
-
-# 集群配置
-$(if [[ "$NODE_TYPE" == "observer" ]]; then echo "fe_type = OBSERVER"; fi)
-EOF
-
-        chown "$DORIS_USER:$DORIS_USER" "$FE_CONF"
-
-    else
-        # BE 节点配置
-        local BE_CONF="$DORIS_HOME/be/conf/be.conf"
-
-        cat >> "$BE_CONF" << EOF
-
-# 集群 BE 配置
-storage_root_path = $DORIS_HOME/data
-
-# 端口配置
-be_port = $BE_PORT
-webserver_port = $BE_HTTP_PORT
-heartbeat_service_port = $BE_HEARTBEAT_PORT
-brpc_port = $((BE_PORT + 1))
-
-# 内存配置 (系统总内存的50%)
-mem_limit = "$(( $(free -m | awk 'NR==2 {print int($2 * 0.5)}') ))m"
-
-# 日志配置
-log_dir = $DORIS_HOME/log
-EOF
-
-        chown "$DORIS_USER:$DORIS_USER" "$BE_CONF"
-    fi
-}
-
 # 配置 systemd 服务
 configure_systemd_service() {
-    log_info "配置 systemd 服务..."
+    log_info "配置 systemd 服务 (FE + BE)..."
 
-    if [[ "$NODE_TYPE" == "be" ]]; then
-        # BE 服务
-        local SERVICE_FILE="/etc/systemd/system/doris-be.service"
+    # FE 服务
+    local FE_SERVICE_FILE="/etc/systemd/system/doris-fe.service"
 
-        cat > "$SERVICE_FILE" << EOF
-[Unit]
-Description=Apache Doris Backend
-After=network.target
-
-[Service]
-Type=forking
-User=$DORIS_USER
-Group=$DORIS_USER
-Environment="JAVA_HOME=$JAVA_HOME"
-ExecStart=$DORIS_HOME/be/bin/start_be.sh
-ExecStop=$DORIS_HOME/be/bin/stop_be.sh
-Restart=on-failure
-RestartSec=10
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-        chmod 644 "$SERVICE_FILE"
-        systemctl daemon-reload
-        systemctl enable doris-be
-
-    else
-        # FE 服务
-        local SERVICE_FILE="/etc/systemd/system/doris-fe.service"
-
-        cat > "$SERVICE_FILE" << EOF
+    cat > "$FE_SERVICE_FILE" << EOF
 [Unit]
 Description=Apache Doris Frontend
 After=network.target
@@ -634,34 +486,65 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-        chmod 644 "$SERVICE_FILE"
-        systemctl daemon-reload
-        systemctl enable doris-fe
-    fi
+    chmod 644 "$FE_SERVICE_FILE"
+
+    # BE 服务
+    local BE_SERVICE_FILE="/etc/systemd/system/doris-be.service"
+
+    cat > "$BE_SERVICE_FILE" << EOF
+[Unit]
+Description=Apache Doris Backend
+After=network.target doris-fe.service
+
+[Service]
+Type=forking
+User=$DORIS_USER
+Group=$DORIS_USER
+Environment="JAVA_HOME=$JAVA_HOME"
+ExecStart=$DORIS_HOME/be/bin/start_be.sh
+ExecStop=$DORIS_HOME/be/bin/stop_be.sh
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    chmod 644 "$BE_SERVICE_FILE"
+    systemctl daemon-reload
+    systemctl enable doris-fe
+    systemctl enable doris-be
 
     log_success "systemd 服务配置完成"
 }
 
 # 启动 Doris 服务
 start_doris_service() {
-    log_info "启动 Doris 服务..."
+    log_info "启动 Doris 服务 (FE + BE)..."
 
-    if [[ "$NODE_TYPE" == "be" ]]; then
-        systemctl start doris-be
-        SERVICE_NAME="doris-be"
-    else
-        systemctl start doris-fe
-        SERVICE_NAME="doris-fe"
-    fi
-
-    # 等待服务启动
+    # 先启动 FE
+    systemctl start doris-fe
     sleep 3
 
-    if systemctl is-active --quiet "$SERVICE_NAME"; then
-        log_success "Doris 服务启动成功"
+    if systemctl is-active --quiet doris-fe; then
+        log_success "Doris FE 服务启动成功"
     else
-        log_error "Doris 服务启动失败"
-        systemctl status "$SERVICE_NAME"
+        log_error "Doris FE 服务启动失败"
+        systemctl status doris-fe
+        return 1
+    fi
+
+    # 再启动 BE
+    systemctl start doris-be
+    sleep 3
+
+    if systemctl is-active --quiet doris-be; then
+        log_success "Doris BE 服务启动成功"
+    else
+        log_error "Doris BE 服务启动失败"
+        systemctl status doris-be
         return 1
     fi
 }
@@ -731,8 +614,7 @@ Doris 用户: $DORIS_USER
 Java 版本: $(java -version 2>&1 | grep -oP 'version "\K[^"]+')
 
 【部署模式】
-模式: $DEPLOYMENT_MODE
-节点类型: $NODE_TYPE
+模式: 单机 FE + BE 混合部署
 
 【端口配置】
 FE RPC 端口: $FE_PORT
@@ -744,13 +626,16 @@ BE Heartbeat 端口: $BE_HEARTBEAT_PORT
 
 【常用命令】
 1. 启动服务:
-   $(if [[ "$NODE_TYPE" == "be" ]]; then echo "systemctl start doris-be"; else echo "systemctl start doris-fe"; fi)
+   systemctl start doris-fe
+   systemctl start doris-be
 
 2. 停止服务:
-   $(if [[ "$NODE_TYPE" == "be" ]]; then echo "systemctl stop doris-be"; else echo "systemctl stop doris-fe"; fi)
+   systemctl stop doris-be
+   systemctl stop doris-fe
 
 3. 查看状态:
-   $(if [[ "$NODE_TYPE" == "be" ]]; then echo "systemctl status doris-be"; else echo "systemctl status doris-fe"; fi)
+   systemctl status doris-fe
+   systemctl status doris-be
 
 4. 查看日志:
    tail -f $DORIS_HOME/log/*
@@ -759,10 +644,11 @@ BE Heartbeat 端口: $BE_HEARTBEAT_PORT
    mysql -h 127.0.0.1 -P $FE_QUERY_PORT -u root -p
 
 6. Web UI:
-   http://$(hostname -I | awk '{print $1}'):$FE_HTTP_PORT/
+   http://localhost:$FE_HTTP_PORT/
 
 【配置文件】
-$(if [[ "$NODE_TYPE" == "be" ]]; then echo "- BE 配置: $DORIS_HOME/be/conf/be.conf"; else echo "- FE 配置: $DORIS_HOME/fe/conf/fe.conf"; fi)
+- FE 配置: $DORIS_HOME/fe/conf/fe.conf
+- BE 配置: $DORIS_HOME/be/conf/be.conf
 - 日志位置: $DORIS_HOME/log/
 - 数据位置: $DORIS_HOME/data/
 

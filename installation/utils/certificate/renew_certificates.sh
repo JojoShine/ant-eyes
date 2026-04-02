@@ -128,7 +128,6 @@ renew_certificates() {
     fi
 
     if [[ "$RENEW_ALL" == "true" ]]; then
-        certbot_cmd="$certbot_cmd --renew-all-domains"
         log_info "续期所有证书"
     fi
 

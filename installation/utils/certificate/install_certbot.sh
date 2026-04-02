@@ -28,24 +28,6 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# 导入进度显示库
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -f "$SCRIPT_DIR/progress_lib.sh" ]]; then
-    source "$SCRIPT_DIR/progress_lib.sh"
-else
-    # 如果找不到库文件，定义简单的进度函数
-    progress_init() { :; }
-    progress_step() { echo "→ $2"; }
-    progress_complete() { echo "安装完成"; }
-    progress_fail() { echo "错误: $1"; }
-    progress_status() { echo "⟳ $1"; }
-fi
-
-# 导入前置依赖检查库
-if [[ -f "$SCRIPT_DIR/dependencies_lib.sh" ]]; then
-    source "$SCRIPT_DIR/dependencies_lib.sh"
-    source "$SCRIPT_DIR/dependencies_config.sh"
-fi
 
 
 
@@ -306,8 +288,7 @@ obtain_certificate() {
                 log_info "使用 DNS 验证申请证书..."
                 certbot certonly --manual --preferred-challenges=dns $DOMAIN_ARGS \
                     --email "$DOMAIN_EMAIL" \
-                    --agree-tos \
-                    --non-interactive || true
+                    --agree-tos || true
             else
                 log_info "使用 HTTP 验证申请证书..."
                 certbot certonly --standalone --preferred-challenges=http $DOMAIN_ARGS \

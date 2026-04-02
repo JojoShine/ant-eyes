@@ -1,0 +1,21 @@
+# 开发文件
+.git
+.gitignore
+.idea
+.vscode
+*.log
+node_modules
+
+# 测试文件
+test/
+tests/
+*.test.js
+
+# 文档（保留 README.md）
+docs/
+
+# 其他
+.DS_Store
+*.swp
+*.swo
+*~

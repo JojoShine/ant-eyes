@@ -141,8 +141,8 @@ install_minio() {
 
     # 下载 MinIO 二进制（多个镜像源）
     local MINIO_URLS=(
+        "https://mirrors.aliyun.com/minio/minio-binaries/latest/linux-amd64/minio"
         "https://dl.min.io/server/minio/release/linux-amd64/minio"
-        "https://mirrors.aliyun.com/minio/minio-binaries/minio/release/linux-amd64/minio"
     )
 
     local download_success=0

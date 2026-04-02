@@ -317,8 +317,8 @@ install_uv() {
 
     # uv 安装脚本（多个镜像源）
     local UV_URLS=(
+        "https://gitee.com/mirrors_astral/uv/raw/main/scripts/install.sh"
         "https://astral.sh/uv/install.sh"
-        "https://ghproxy.com/https://raw.githubusercontent.com/astral-sh/uv/main/scripts/install.sh"
     )
 
     local download_success=0

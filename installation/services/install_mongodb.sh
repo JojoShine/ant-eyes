@@ -166,10 +166,7 @@ _setup_mongodb_repo() {
     if [[ "$PKG_MGR" == "apt" ]]; then
         if ! apt-cache show mongodb-org &>/dev/null 2>&1; then
             apt-get install -y gnupg curl 2>/dev/null || true
-            # 使用阿里云 MongoDB 镜像源
-            curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | \
-                gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg 2>/dev/null || true
-
+            # 使用阿里云 MongoDB 镜像源，跳过 GPG 验证
             local UBUNTU_CODENAME
             UBUNTU_CODENAME=$(lsb_release -cs 2>/dev/null || echo "focal")
             # 仅支持 focal/jammy，其余回退到 focal
@@ -177,7 +174,7 @@ _setup_mongodb_repo() {
                 UBUNTU_CODENAME="focal"
             fi
 
-            echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://mirrors.aliyun.com/mongodb/apt/ubuntu $UBUNTU_CODENAME/mongodb-org/7.0 multiverse" \
+            echo "deb [ arch=amd64,arm64 trusted=yes ] https://mirrors.aliyun.com/mongodb/apt/ubuntu $UBUNTU_CODENAME/mongodb-org/7.0 multiverse" \
                 > /etc/apt/sources.list.d/mongodb-org-7.0.list
             apt-get update -qq 2>/dev/null || true
         fi

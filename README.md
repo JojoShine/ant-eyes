@@ -227,7 +227,7 @@ npx ant-eyes-install certbot
 ## 📦 npm 包信息
 
 - **包名**: `ant-eyes-install`
-- **版本**: 1.0.2
+- **版本**: 1.0.3
 - **npm 地址**: https://www.npmjs.com/package/ant-eyes-install
 
 ---

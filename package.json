@@ -1,6 +1,6 @@
 {
   "name": "ant-eyes-install",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "一键安装运维脚本集合，支持 Redis/MySQL/MongoDB/Nginx/Docker 等服务的快速部署",
   "main": "bin/install.js",
   "bin": {

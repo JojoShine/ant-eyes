@@ -251,6 +251,12 @@ configure_mongodb() {
 
     if id mongod &>/dev/null; then
         chown -R mongod:mongod /var/lib/mongo /var/log/mongodb 2>/dev/null || true
+        # 修正 mongod.conf 中自定义 dbPath 的权限
+        local DB_PATH
+        DB_PATH=$(grep -E "^\s*path:|^\s*dbPath:" "$MONGO_CONF" 2>/dev/null | awk '{print $2}' | head -1)
+        if [[ -n "$DB_PATH" && -d "$DB_PATH" ]]; then
+            chown -R mongod:mongod "$DB_PATH" 2>/dev/null || true
+        fi
     fi
 
     # 先不启用 auth，启动后创建用户再开启

@@ -209,6 +209,7 @@ ProtectProc=invisible
 EnvironmentFile=-/etc/minio/minio.env
 
 ExecStartPre=/bin/bash -c "if [ -z \"\${MINIO_VOLUMES}\" ]; then echo \"Variable MINIO_VOLUMES not set in /etc/minio/minio.env\"; exit 1; fi"
+ExecStartPre=/bin/bash -c "chown -R $MINIO_USER:$MINIO_USER \${MINIO_VOLUMES} 2>/dev/null || true"
 
 ExecStart=/usr/local/bin/minio server \$MINIO_VOLUMES \$MINIO_OPTS --address :$MINIO_API_PORT
 

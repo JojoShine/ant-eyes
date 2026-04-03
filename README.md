@@ -49,8 +49,9 @@ sudo bash server_check.sh
 sudo bash installation/services/install_nvm.sh
 
 # 方式 2：手动安装 NVM（需要配置镜像）
-curl -o- https://gitee.com/mirrors/nvm/raw/v0.39.7/install.sh | bash
+export NVM_SOURCE=https://gitee.com/mirrors/nvm.git
 export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node
+curl -o- https://gitee.com/mirrors/nvm/raw/v0.39.7/install.sh | bash
 source ~/.nvm/nvm.sh
 nvm install 20
 ```

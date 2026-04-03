@@ -61,6 +61,8 @@ const SCRIPT_MAP = {
   spark: 'installation/utils/data_governance/install_spark.sh',
   flink: 'installation/utils/data_governance/install_flink.sh',
   doris: 'installation/utils/data_governance/install_doris.sh',
+  monitor: 'installation/utils/monitor/install_monitor.sh',
+  'monitor-config': 'installation/utils/monitor/monitor_config.sh',
 
   // 系统检查工具
   check: 'server_check.sh',
@@ -136,7 +138,8 @@ function listServices() {
   log('\n工具脚本:', 'green');
   const utils = [
     'certbot', 'renew-cert', 'manage-cert',
-    'spark', 'flink', 'doris', 'check'
+    'spark', 'flink', 'doris', 'check',
+    'monitor', 'monitor-config'
   ];
   utils.forEach(u => log(`  • ${u}`));
 

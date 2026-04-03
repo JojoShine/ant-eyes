@@ -113,6 +113,27 @@ npx ant-eyes-install --list
 - **renew-cert** - 证书自动续期
 - **manage-cert** - 证书管理工具
 
+### 监控预警
+- **monitor** - 安装监控系统（初始化配置目录、邮件配置）
+- **monitor-config** - 管理监控任务（添加/删除/测试/启用禁用）
+
+**监控功能特性：**
+- 支持 GET / POST / PUT / DELETE 请求
+- POST 支持 JSON 请求体和自定义请求头
+- 连续失败 N 次后发送预警邮件（避免误报）
+- 1小时预警冷却期（避免邮件轰炸）
+- 接口恢复时自动发送恢复通知
+- 基于 crontab 的定时监控，支持分钟级频率
+
+**快速使用：**
+```bash
+# 1. 安装监控系统（初始化配置 + 邮件配置）
+npx ant-eyes-install monitor
+
+# 2. 添加并管理监控任务
+npx ant-eyes-install monitor-config
+```
+
 ### 数据治理
 - **spark** - Apache Spark 大数据处理（单机模式）
 - **flink** - Apache Flink 流处理（单机模式）

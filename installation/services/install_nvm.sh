@@ -18,7 +18,7 @@ OS_TYPE=""
 PKG_MGR=""
 TARGET_USER=""
 TARGET_HOME=""
-NVM_VERSION="v0.39.7"
+NVM_VERSION="v0.40.2"
 NODE_VERSION="20"
 
 log_info()    { echo -e "${BLUE}[INFO]${NC} $1"; }
@@ -231,10 +231,11 @@ install_nvm() {
 
     log_info "执行 NVM 安装脚本..."
     export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node
+    export NVM_SOURCE=https://gitee.com/mirrors/nvm.git
     if [[ "$TARGET_USER" == "root" ]]; then
         bash /tmp/nvm_install.sh
     else
-        sudo -u "$TARGET_USER" bash -c "export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node && bash /tmp/nvm_install.sh"
+        sudo -u "$TARGET_USER" bash -c "export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node && export NVM_SOURCE=https://gitee.com/mirrors/nvm.git && bash /tmp/nvm_install.sh"
     fi
 
     rm -f /tmp/nvm_install.sh
@@ -264,12 +265,10 @@ configure_nvm() {
     if [[ "$TARGET_USER" == "root" ]]; then
         cat > "$npmrc_file" <<'EOF'
 registry=https://registry.npmmirror.com
-disturl=https://cdn.npmmirror.com/dist
 EOF
     else
         sudo -u "$TARGET_USER" tee "$npmrc_file" > /dev/null <<'EOF'
 registry=https://registry.npmmirror.com
-disturl=https://cdn.npmmirror.com/dist
 EOF
     fi
 

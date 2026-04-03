@@ -51,9 +51,11 @@ sudo bash installation/services/install_nvm.sh
 # 方式 2：手动安装 NVM（需要配置镜像）
 export NVM_SOURCE=https://gitee.com/mirrors/nvm.git
 export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node
-curl -o- https://gitee.com/mirrors/nvm/raw/v0.39.7/install.sh | bash
+curl -o- https://gitee.com/mirrors/nvm/raw/v0.40.2/install.sh | bash
 source ~/.nvm/nvm.sh
 nvm install 20
+# 配置 npm 国内镜像
+echo "registry=https://registry.npmmirror.com" > ~/.npmrc
 ```
 
 安装完成后，验证 Node.js 环境：

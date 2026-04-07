@@ -1078,6 +1078,14 @@ show_security_info() {
     elif command_exists apt; then
         print_info "使用 'apt list --upgradable' 查看可用更新"
     fi
+
+    # 防火墙管理入口
+    echo ""
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    read -p "是否进入防火墙管理（查看/修改规则）？(y/N): " fw_enter
+    if [[ "$fw_enter" =~ ^[Yy]$ ]]; then
+        manage_firewall
+    fi
 }
 
 ################################################################################
@@ -1086,7 +1094,7 @@ show_security_info() {
 manage_crontab() {
     print_header "Crontab定时任务管理"
 
-    # 显示主线流程说明
+    # 显示主线流程说明（仅进入时显示一次）
     print_subheader "定时任务工作流程"
     cat << 'EOF'
 Crontab定时任务的完整流程：
@@ -1111,68 +1119,70 @@ Crontab定时任务的完整流程：
 
 EOF
 
-    echo ""
-    # 显示当前定时任务
-    print_subheader "当前定时任务"
-    if [ -f "$HOME/.crontab" ] || command_exists crontab; then
-        local current_crontab=$(crontab -l 2>/dev/null)
-        if [ -n "$current_crontab" ]; then
-            echo "$current_crontab" | while read -r line; do
-                if [[ ! "$line" =~ ^# ]]; then
-                    print_info "$line"
-                fi
-            done
-        else
-            print_info "当前用户无定时任务"
-        fi
-    else
-        print_warning "无法访问crontab（需要root权限）"
-    fi
-
-    echo ""
-    print_subheader "定时任务管理选项"
-    echo "1. 查看详细定时任务"
-    echo "2. 添加新的定时任务"
-    echo "3. 删除定时任务"
-    echo "4. 编辑定时任务"
-    echo "5. 查看常用模板"
-    echo "0. 返回主菜单"
-    echo ""
-
-    read -p "请选择操作 (0-5): " cron_choice
-
-    case $cron_choice in
-        1)
-            print_subheader "详细定时任务列表"
-            if crontab -l 2>/dev/null; then
-                :
+    while true; do
+        echo ""
+        # 显示当前定时任务
+        print_subheader "当前定时任务"
+        if [ -f "$HOME/.crontab" ] || command_exists crontab; then
+            local current_crontab=$(crontab -l 2>/dev/null)
+            if [ -n "$current_crontab" ]; then
+                echo "$current_crontab" | while read -r line; do
+                    if [[ ! "$line" =~ ^# ]]; then
+                        print_info "$line"
+                    fi
+                done
             else
-                print_error "无法读取定时任务（可能需要root权限）"
+                print_info "当前用户无定时任务"
             fi
-            ;;
-        2)
-            print_subheader "添加新的定时任务"
-            add_crontab_task
-            ;;
-        3)
-            print_subheader "删除定时任务"
-            delete_crontab_task
-            ;;
-        4)
-            print_subheader "编辑定时任务"
-            crontab -e 2>/dev/null || print_error "无法编辑定时任务"
-            ;;
-        5)
-            print_subheader "常用定时任务模板"
-            show_crontab_templates
-            ;;
-        0)
-            return 0
-            ;;
-        *)
-            print_error "无效的选择"
-            ;;
-    esac
+        else
+            print_warning "无法访问crontab（需要root权限）"
+        fi
+
+        echo ""
+        print_subheader "定时任务管理选项"
+        echo "1. 查看详细定时任务"
+        echo "2. 添加新的定时任务"
+        echo "3. 删除定时任务"
+        echo "4. 编辑定时任务"
+        echo "5. 查看常用模板"
+        echo "0. 返回主菜单"
+        echo ""
+
+        read -p "请选择操作 (0-5): " cron_choice
+
+        case $cron_choice in
+            1)
+                print_subheader "详细定时任务列表"
+                if crontab -l 2>/dev/null; then
+                    :
+                else
+                    print_error "无法读取定时任务（可能需要root权限）"
+                fi
+                ;;
+            2)
+                print_subheader "添加新的定时任务"
+                add_crontab_task
+                ;;
+            3)
+                print_subheader "删除定时任务"
+                delete_crontab_task
+                ;;
+            4)
+                print_subheader "编辑定时任务"
+                crontab -e 2>/dev/null || print_error "无法编辑定时任务"
+                ;;
+            5)
+                print_subheader "常用定时任务模板"
+                show_crontab_templates
+                ;;
+            0)
+                return 0
+                ;;
+            *)
+                print_error "无效的选择"
+                ;;
+        esac
+    done
 }
 
 # 添加定时任务
@@ -1679,7 +1689,7 @@ configure_time_sync() {
 manage_disk_mount() {
     print_header "磁盘分区挂载工具"
 
-    # 显示主线流程说明
+    # 显示主线流程说明（仅进入时显示一次）
     print_subheader "完整工作流程指南"
     cat << 'EOF'
 磁盘挂载的完整流程：
@@ -1704,68 +1714,70 @@ manage_disk_mount() {
 
 EOF
 
-    echo ""
-    # 显示当前磁盘分区信息
-    print_subheader "系统磁盘设备"
-    if command_exists lsblk; then
-        lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT
-    elif command_exists fdisk; then
-        fdisk -l | grep -E "^Disk /dev|^  /dev"
-    else
-        print_warning "无法获取磁盘信息（缺失lsblk/fdisk）"
-    fi
+    while true; do
+        echo ""
+        # 显示当前磁盘分区信息
+        print_subheader "系统磁盘设备"
+        if command_exists lsblk; then
+            lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT
+        elif command_exists fdisk; then
+            fdisk -l | grep -E "^Disk /dev|^  /dev"
+        else
+            print_warning "无法获取磁盘信息（缺失lsblk/fdisk）"
+        fi
 
-    echo ""
-    print_subheader "磁盘管理选项"
-    echo "1. 查看磁盘和分区信息"
-    echo "2. 查看分区类型（MBR/GPT）"
-    echo "3. 创建新分区"
-    echo "4. 格式化分区"
-    echo "5. 挂载分区"
-    echo "6. 卸载分区"
-    echo "7. 创建挂载点"
-    echo "8. 配置开机自动挂载"
-    echo "9. 查看分区挂载指南"
-    echo "0. 返回主菜单"
-    echo ""
+        echo ""
+        print_subheader "磁盘管理选项"
+        echo "1. 查看磁盘和分区信息"
+        echo "2. 查看分区类型（MBR/GPT）"
+        echo "3. 创建新分区"
+        echo "4. 格式化分区"
+        echo "5. 挂载分区"
+        echo "6. 卸载分区"
+        echo "7. 创建挂载点"
+        echo "8. 配置开机自动挂载"
+        echo "9. 查看分区挂载指南"
+        echo "0. 返回主菜单"
+        echo ""
 
-    read -p "请选择操作 (0-9): " disk_choice
+        read -p "请选择操作 (0-9): " disk_choice
 
-    case $disk_choice in
-        1)
-            show_partition_details
-            ;;
-        2)
-            show_partition_type
-            ;;
-        3)
-            create_partition
-            ;;
-        4)
-            format_partition
-            ;;
-        5)
-            mount_partition
-            ;;
-        6)
-            umount_partition
-            ;;
-        7)
-            create_mount_point
-            ;;
-        8)
-            configure_auto_mount
-            ;;
-        9)
-            show_mount_guide
-            ;;
-        0)
-            return 0
-            ;;
-        *)
-            print_error "无效的选择"
-            ;;
-    esac
+        case $disk_choice in
+            1)
+                show_partition_details
+                ;;
+            2)
+                show_partition_type
+                ;;
+            3)
+                create_partition
+                ;;
+            4)
+                format_partition
+                ;;
+            5)
+                mount_partition
+                ;;
+            6)
+                umount_partition
+                ;;
+            7)
+                create_mount_point
+                ;;
+            8)
+                configure_auto_mount
+                ;;
+            9)
+                show_mount_guide
+                ;;
+            0)
+                return 0
+                ;;
+            *)
+                print_error "无效的选择"
+                ;;
+        esac
+    done
 }
 
 # 显示分区详细信息
@@ -3057,6 +3069,120 @@ manage_ufw() {
 }
 
 ################################################################################
+# DNS配置管理模块
+################################################################################
+manage_dns_config() {
+    print_header "DNS配置管理"
+
+    while true; do
+        echo ""
+        print_subheader "当前DNS配置"
+        if [ -f /etc/resolv.conf ]; then
+            local dns_servers=$(grep "^nameserver" /etc/resolv.conf | awk '{print $2}')
+            if [ -n "$dns_servers" ]; then
+                echo "$dns_servers" | while read -r dns; do
+                    print_info "DNS服务器: $dns"
+                done
+            else
+                print_warning "未配置DNS服务器"
+            fi
+        else
+            print_error "/etc/resolv.conf 文件不存在"
+        fi
+
+        echo ""
+        print_subheader "DNS管理选项"
+        echo -e "  ${GREEN}1${NC}) 查看完整DNS配置"
+        echo -e "  ${GREEN}2${NC}) 添加DNS服务器"
+        echo -e "  ${GREEN}3${NC}) 替换DNS服务器"
+        echo -e "  ${GREEN}4${NC}) 使用默认DNS (114.114.114.114)"
+        echo -e "  ${GREEN}5${NC}) 测试DNS解析"
+        echo -e "  ${RED}0${NC}) 返回上级菜单"
+        echo ""
+
+        read -p "请选择操作 [0-5]: " dns_choice
+        echo ""
+
+        case $dns_choice in
+            1)
+                print_subheader "完整DNS配置文件"
+                if [ -f /etc/resolv.conf ]; then
+                    cat /etc/resolv.conf
+                else
+                    print_error "/etc/resolv.conf 文件不存在"
+                fi
+                ;;
+            2)
+                print_subheader "添加DNS服务器"
+                read -p "请输入DNS服务器地址 (如: 8.8.8.8): " new_dns
+                if [ -n "$new_dns" ]; then
+                    if [[ "$new_dns" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                        echo "nameserver $new_dns" | sudo tee -a /etc/resolv.conf >/dev/null
+                        print_success "DNS服务器 $new_dns 已添加"
+                    else
+                        print_error "无效的IP地址格式"
+                    fi
+                fi
+                ;;
+            3)
+                print_subheader "替换DNS服务器"
+                print_warning "此操作将清空现有DNS配置"
+                read -p "请输入新的DNS服务器地址 (如: 8.8.8.8，多个用空格分隔): " new_dns_list
+                if [ -n "$new_dns_list" ]; then
+                    read -p "确认替换DNS配置? (y/N): " confirm
+                    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                        sudo cp /etc/resolv.conf /etc/resolv.conf.backup.$(date +%Y%m%d_%H%M%S)
+                        echo "# Generated by server_check.sh" | sudo tee /etc/resolv.conf >/dev/null
+                        for dns in $new_dns_list; do
+                            if [[ "$dns" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                                echo "nameserver $dns" | sudo tee -a /etc/resolv.conf >/dev/null
+                                print_success "已添加DNS: $dns"
+                            else
+                                print_warning "跳过无效IP: $dns"
+                            fi
+                        done
+                        print_success "DNS配置已更新，旧配置已备份"
+                    else
+                        print_info "操作已取消"
+                    fi
+                fi
+                ;;
+            4)
+                print_subheader "使用默认DNS (114.114.114.114)"
+                read -p "是否使用 114.114.114.114 作为DNS服务器? (y/N): " confirm
+                if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                    sudo cp /etc/resolv.conf /etc/resolv.conf.backup.$(date +%Y%m%d_%H%M%S)
+                    echo "# Generated by server_check.sh" | sudo tee /etc/resolv.conf >/dev/null
+                    echo "nameserver 114.114.114.114" | sudo tee -a /etc/resolv.conf >/dev/null
+                    echo "nameserver 8.8.8.8" | sudo tee -a /etc/resolv.conf >/dev/null
+                    print_success "DNS已配置为 114.114.114.114 (主) 和 8.8.8.8 (备)"
+                    print_info "旧配置已备份"
+                else
+                    print_info "操作已取消"
+                fi
+                ;;
+            5)
+                print_subheader "测试DNS解析"
+                read -p "请输入要测试的域名 (默认: www.baidu.com): " test_domain
+                test_domain=${test_domain:-www.baidu.com}
+                print_info "正在解析 $test_domain ..."
+                if resolve_dns "$test_domain"; then
+                    print_success "DNS解析成功"
+                else
+                    print_error "DNS解析失败"
+                fi
+                ;;
+            0)
+                return 0
+                ;;
+            *)
+                print_error "无效的选项"
+                ;;
+        esac
+    done
+}
+
+################################################################################
 # 网络诊断工具模块
 ################################################################################
 
@@ -3183,6 +3309,7 @@ show_network_tools() {
     print_info "7. 网速测试 - 测试网络带宽"
     print_info "8. 端口/连接查询 - 查询特定端口或IP的连接"
     print_info "9. 防火墙管理 - 管理防火墙规则和端口"
+    print_info "10. DNS配置管理 - 查看和修改DNS服务器配置"
     echo ""
 
     # 如果是交互模式，提供工具使用
@@ -3190,7 +3317,7 @@ show_network_tools() {
         read -p "是否执行网络测试或管理? (y/N): " do_test
         if [[ "$do_test" =~ ^[Yy]$ ]]; then
             echo ""
-            read -p "选择测试类型 (1-9): " test_type
+            read -p "选择测试类型 (1-10): " test_type
 
             case $test_type in
                 1)
@@ -3342,6 +3469,9 @@ show_network_tools() {
                     ;;
                 9)
                     manage_firewall
+                    ;;
+                10)
+                    manage_dns_config
                     ;;
                 *)
                     print_warning "无效的选项"
@@ -3535,7 +3665,6 @@ EOF
                 show_service_info
                 show_security_info
                 show_network_tools
-                show_version_info
                 ;;
             13)
                 echo -n "请输入报告文件名: "

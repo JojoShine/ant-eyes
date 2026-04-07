@@ -44,9 +44,37 @@ install_mongodb() {
 
 configure_mongodb() {
     log_info "配置 MongoDB..."
-    mkdir -p /var/lib/mongodb /var/log/mongodb
-    chown -R mongodb:mongodb /var/lib/mongodb /var/log/mongodb
+    DATA_DIR="/data/mongodb"
+    LOG_DIR="/data/mongodb/log"
+    mkdir -p "$DATA_DIR" "$LOG_DIR"
+    chown -R mongodb:mongodb "$DATA_DIR" "$LOG_DIR"
+    chmod 750 "$DATA_DIR"
+
+    # 配置 MongoDB
+    if [[ -f /etc/mongodb.conf ]]; then
+        cp /etc/mongodb.conf /etc/mongodb.conf.bak.$(date +%Y%m%d_%H%M%S)
+
+        # 修改数据目录和日志目录
+        sed -i "s|dbpath=.*|dbpath=$DATA_DIR|" /etc/mongodb.conf
+        sed -i "s|logpath=.*|logpath=$LOG_DIR/mongodb.log|" /etc/mongodb.conf
+
+        # 配置 bind_ip 允许远程访问
+        sed -i 's/bind_ip = 127.0.0.1/bind_ip = 0.0.0.0/' /etc/mongodb.conf
+    fi
+
     log_success "MongoDB 配置完成"
+}
+
+configure_firewall() {
+    log_info "配置防火墙..."
+
+    # 检查 ufw 是否安装
+    if command -v ufw &> /dev/null; then
+        ufw allow 27017/tcp
+        log_success "防火墙规则已添加（端口 27017）"
+    else
+        log_warn "ufw 未安装，跳过防火墙配置"
+    fi
 }
 
 start_service() {
@@ -82,11 +110,14 @@ main() {
     check_root
     install_mongodb
     configure_mongodb
+    configure_firewall
     start_service
     verify
 
     echo ""
     log_success "MongoDB 安装完成！"
+    log_info "数据目录: /data/mongodb"
+    log_info "远程访问已启用，端口: 27017"
 }
 
 main

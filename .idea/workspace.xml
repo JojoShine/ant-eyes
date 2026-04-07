@@ -6,43 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="e9deeae7-89a4-493b-94e9-fd5fab1edd98" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UNIFIED_INSTALLATION_GUIDE.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/app_manager.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/dependencies_config.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/dependencies_lib.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/docker-compose/README.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/docker-compose/minio/.env.example" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/docker-compose/minio/docker-compose.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/docker-compose/mongodb/.env.example" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/docker-compose/mongodb/docker-compose.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/docker-compose/mysql/.env.example" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/docker-compose/mysql/docker-compose.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/docker-compose/postgresql/.env.example" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/docker-compose/postgresql/docker-compose.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/docker-compose/rabbitmq/.env.example" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/docker-compose/rabbitmq/docker-compose.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/docker-compose/rabbitmq/rabbitmq.conf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/docker-compose/redis/.env.example" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/docker-compose/redis/docker-compose.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/docker-compose/redis/redis.conf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/install_certbot.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/install_docker.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/install_docker_kylin.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/install_doris.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/install_flink.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/install_minio.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/install_mongodb.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/install_mysql.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/install_nginx.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/install_postgresql.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/install_rabbitmq.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/install_redis.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/install_spark.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/manage_certificates.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/progress_lib.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/operations/renew_certificates.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/server_check.sh" beforeDir="false" afterPath="$PROJECT_DIR$/server_check.sh" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,23 +23,23 @@
     <option name="showLibraryContents" value="true" />
     <option name="showMembers" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "git-widget-placeholder": "master",
-    "javascript.preferred.runtime.type.id": "node",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;javascript.preferred.runtime.type.id&quot;: &quot;node&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -95,7 +58,13 @@
       <workItem from="1767494045579" duration="10186000" />
       <workItem from="1767748120412" duration="49247000" />
       <workItem from="1768530714950" duration="8132000" />
-      <workItem from="1768958308757" duration="19650000" />
+      <workItem from="1768958308757" duration="20926000" />
+      <workItem from="1769062093268" duration="21807000" />
+      <workItem from="1769153786648" duration="93000" />
+      <workItem from="1772589777621" duration="1000" />
+      <workItem from="1773650553898" duration="3592000" />
+      <workItem from="1775022736551" duration="13649000" />
+      <workItem from="1775203578618" duration="2730000" />
     </task>
     <servers />
   </component>

@@ -93,15 +93,38 @@ install_redis() {
 
 configure_redis() {
     log_info "配置 Redis..."
+    DATA_DIR="/data/redis"
+    mkdir -p "$DATA_DIR"
+    chown redis:redis "$DATA_DIR"
+    chmod 750 "$DATA_DIR"
 
     if [[ -f /etc/redis.conf ]]; then
         cp /etc/redis.conf /etc/redis.conf.bak.$(date +%Y%m%d_%H%M%S)
+
+        # 配置数据目录
+        sed -i "s|^dir .*|dir $DATA_DIR|" /etc/redis.conf
+
+        # 配置 bind 允许远程访问
+        sed -i 's/^bind 127.0.0.1/bind 0.0.0.0/' /etc/redis.conf
 
         # 配置 requirepass（设置空密码，可以自行修改）
         sed -i 's/^# requirepass foobared/requirepass foobared/' /etc/redis.conf || true
     fi
 
     log_success "Redis 配置完成"
+}
+
+configure_firewall() {
+    log_info "配置防火墙..."
+
+    # 检查 firewalld 是否运行
+    if systemctl is-active --quiet firewalld; then
+        firewall-cmd --permanent --add-port=6379/tcp
+        firewall-cmd --reload
+        log_success "防火墙规则已添加（端口 6379）"
+    else
+        log_warn "firewalld 未运行，跳过防火墙配置"
+    fi
 }
 
 start_service() {
@@ -138,11 +161,14 @@ main() {
     configure_yum_mirror
     install_redis
     configure_redis
+    configure_firewall
     start_service
     verify
 
     echo ""
     log_success "Redis 安装完成！"
+    log_info "数据目录: /data/redis"
+    log_info "远程访问已启用，端口: 6379"
 }
 
 main

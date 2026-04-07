@@ -93,9 +93,38 @@ install_mongodb() {
 
 configure_mongodb() {
     log_info "配置 MongoDB..."
-    mkdir -p /var/lib/mongo /var/log/mongodb
-    chown -R mongod:mongod /var/lib/mongo /var/log/mongodb
+    DATA_DIR="/data/mongodb"
+    LOG_DIR="/data/mongodb/log"
+    mkdir -p "$DATA_DIR" "$LOG_DIR"
+    chown -R mongod:mongod "$DATA_DIR" "$LOG_DIR"
+    chmod 750 "$DATA_DIR"
+
+    # 配置 MongoDB
+    if [[ -f /etc/mongod.conf ]]; then
+        cp /etc/mongod.conf /etc/mongod.conf.bak.$(date +%Y%m%d_%H%M%S)
+
+        # 修改数据目录和日志目录
+        sed -i "s|dbPath: .*|dbPath: $DATA_DIR|" /etc/mongod.conf
+        sed -i "s|path: .*|path: $LOG_DIR/mongod.log|" /etc/mongod.conf
+
+        # 配置 bindIp 允许远程访问
+        sed -i 's/bindIp: 127.0.0.1/bindIp: 0.0.0.0/' /etc/mongod.conf
+    fi
+
     log_success "MongoDB 配置完成"
+}
+
+configure_firewall() {
+    log_info "配置防火墙..."
+
+    # 检查 firewalld 是否运行
+    if systemctl is-active --quiet firewalld; then
+        firewall-cmd --permanent --add-port=27017/tcp
+        firewall-cmd --reload
+        log_success "防火墙规则已添加（端口 27017）"
+    else
+        log_warn "firewalld 未运行，跳过防火墙配置"
+    fi
 }
 
 start_service() {
@@ -132,11 +161,14 @@ main() {
     configure_yum_mirror
     install_mongodb
     configure_mongodb
+    configure_firewall
     start_service
     verify
 
     echo ""
     log_success "MongoDB 安装完成！"
+    log_info "数据目录: /data/mongodb"
+    log_info "远程访问已启用，端口: 27017"
 }
 
 main

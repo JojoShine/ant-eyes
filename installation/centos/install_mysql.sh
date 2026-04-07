@@ -94,6 +94,11 @@ install_mysql() {
 
 configure_mysql() {
     log_info "配置 MySQL..."
+    DATA_DIR="/data/mysql"
+    mkdir -p "$DATA_DIR"
+    chown mysql:mysql "$DATA_DIR"
+    chmod 750 "$DATA_DIR"
+
     mkdir -p /etc/mysql/conf.d
 
     cat > /etc/mysql/conf.d/custom.cnf <<'EOF'
@@ -101,14 +106,33 @@ configure_mysql() {
 character-set-server = utf8mb4
 collation-server = utf8mb4_unicode_ci
 init_connect = 'SET NAMES utf8mb4'
-bind-address = 127.0.0.1
+bind-address = 0.0.0.0
 max_connections = 500
+datadir = /data/mysql
 
 [client]
 default-character-set = utf8mb4
 EOF
 
+    # 初始化数据目录
+    if [[ ! -d "$DATA_DIR/mysql" ]]; then
+        mysqld --initialize-insecure --user=mysql --datadir="$DATA_DIR"
+    fi
+
     log_success "MySQL 配置完成"
+}
+
+configure_firewall() {
+    log_info "配置防火墙..."
+
+    # 检查 firewalld 是否运行
+    if systemctl is-active --quiet firewalld; then
+        firewall-cmd --permanent --add-port=3306/tcp
+        firewall-cmd --reload
+        log_success "防火墙规则已添加（端口 3306）"
+    else
+        log_warn "firewalld 未运行，跳过防火墙配置"
+    fi
 }
 
 start_service() {
@@ -145,11 +169,14 @@ main() {
     configure_yum_mirror
     install_mysql
     configure_mysql
+    configure_firewall
     start_service
     verify
 
     echo ""
     log_success "MySQL 安装完成！"
+    log_info "数据目录: /data/mysql"
+    log_info "远程访问已启用，端口: 3306"
 }
 
 main

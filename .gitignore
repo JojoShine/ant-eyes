@@ -12,6 +12,7 @@ ant-eyes-*.tgz
 # 安装指南（本地文档）
 INSTALL_GUIDE.md
 PHASE3_SUMMARY.md
+projectplan.md
 
 # npm依赖
 node_modules/

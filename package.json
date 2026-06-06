@@ -1,45 +1,51 @@
 {
-  "name": "ant-eyes-install",
-  "version": "1.2.1",
-  "description": "一键安装运维脚本集合，支持 Redis/MySQL/MongoDB/Nginx/Docker 等服务的快速部署",
+  "name": "ant-eyes",
+  "version": "2.0.0",
+  "description": "Linux 服务器健康检查和运维管理工具。提供系统检查、安全审计、应用监控、快速部署等功能。",
   "main": "bin/install.js",
   "bin": {
-    "ant-eyes-install": "./bin/install.js"
+    "ant-eyes": "./bin/install.js"
   },
   "scripts": {
     "test": "node bin/install.js --list"
   },
   "keywords": [
+    "linux",
     "devops",
+    "operations",
+    "system-check",
+    "monitoring",
+    "health-check",
+    "server-management",
+    "deployment",
+    "automation",
     "install",
     "redis",
     "mysql",
     "mongodb",
     "nginx",
     "docker",
-    "linux",
-    "automation",
-    "deployment"
+    "centos",
+    "ubuntu"
   ],
-  "author": "ant-eyes",
+  "author": "ant-eyes contributors",
   "license": "MIT",
   "files": [
     "bin/",
-    "installation/services/",
-    "installation/docker-compose/",
-    "installation/utils/",
-    "server_check.sh",
-    "README.md"
+    "scripts/",
+    "README.md",
+    "README.en.md",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=14.0.0"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/ant-eyes.git"
+    "url": "https://github.com/JojoShine/ant-eyes.git"
   },
   "bugs": {
-    "url": "https://github.com/your-org/ant-eyes/issues"
+    "url": "https://github.com/JojoShine/ant-eyes/issues"
   },
-  "homepage": "https://github.com/your-org/ant-eyes#readme"
+  "homepage": "https://github.com/JojoShine/ant-eyes#readme"
 }

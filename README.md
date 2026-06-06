@@ -1,261 +1,283 @@
-# ant-eyes - Linux 运维工具集
+# ant-eyes
 
-一套完整的 Linux 系统运维工具集，包含系统检查、安全审计、服务安装等功能。
+Linux 服务器健康检查和运维管理工具
 
-## 🎯 核心功能：系统检查工具
+简体中文 | [English](./README.en.md)
 
-**ant-eyes 的核心是强大的系统检查工具**，提供全面的服务器健康检查、安全审计和运维诊断能力。
+## 概述
 
-### 📊 10 大功能模块
+ant-eyes 是一个全面的 Linux 服务器运维工具集，提供系统检查、服务管理、运维工具等功能。支持 CentOS、Ubuntu、Kylin、UOS 等多种 Linux 发行版。
 
-1. **系统基本信息检查** - CPU、内存、磁盘、网络等关键信息
-2. **系统异常访问检查** - SSH 登录监控、暴力破解检测、可疑连接分析
-3. **常用组件运行状态** - Oracle、MySQL、Redis、Kafka 等应用状态检测
-4. **系统服务部署信息** - 运行中的服务、监听端口、Docker 容器状态
-5. **系统安全情况检查** - 防火墙、SELinux、用户权限、文件安全审计
-6. **网络诊断工具** - Ping、Telnet、DNS 解析、端口扫描、网速测试、防火墙管理
-7. **Crontab 定时任务管理** - 查看、添加、删除定时任务，支持常用模板
-8. **NTP/Chrony 时间同步** - 管理时间同步服务，同步系统时间
-9. **磁盘分区挂载工具** - MBR/GPT 分区识别、挂载、文件系统管理
-10. **磁盘 I/O 性能检查** - iostat 实时监控、fio 基准测试、SMART 健康检查
+### 核心特性
 
-### 🚀 快速使用系统检查工具
+- 系统健康检查：CPU、内存、磁盘、网络等关键信息
+- 安全审计：SSH 登录失败、暴力破解检测
+- 应用监控：常用服务状态检测（MySQL、Redis、MongoDB 等）
+- 运维管理：定时任务、时间同步、磁盘管理、性能检查
+- 快速部署：一键安装 Redis、MySQL、PostgreSQL、Nginx、Docker 等
+- 交互式菜单：简单易用的命令行界面
+- 模块化设计：清晰的功能划分，易于扩展
 
-```bash
-# 通过 npm 运行（推荐）
-npx ant-eyes-install check
+## 安装
 
-# 或直接执行脚本
-sudo bash server_check.sh
-```
-
-**特点：**
-- ✅ 交互式菜单，易于使用
-- ✅ 支持报告导出功能
-- ✅ 支持多种 Linux 发行版（CentOS、Ubuntu、Kylin、UOS）
-- ✅ 完整的系统安全检查能力
-- ✅ 强大的网络诊断工具集
-
----
-
-## 📦 快速安装
-
-### 前置条件：安装 Node.js
-
-使用 npm 方式需要先安装 Node.js 环境。推荐使用 NVM 管理 Node.js 版本：
+### 使用 npm
 
 ```bash
-# 方式 1：使用本项目的 NVM 安装脚本（推荐，已配置国内镜像）
-sudo bash installation/services/install_nvm.sh
-
-# 方式 2：手动安装 NVM（需要配置镜像）
-export NVM_SOURCE=https://gitee.com/mirrors/nvm.git
-export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/mirrors/node
-curl -o- https://gitee.com/mirrors/nvm/raw/v0.40.2/install.sh | bash
-source ~/.nvm/nvm.sh
-nvm install 20
-# 配置 npm 国内镜像
-echo "registry=https://registry.npmmirror.com" > ~/.npmrc
+npm install -g ant-eyes
 ```
 
-安装完成后，验证 Node.js 环境：
-```bash
-node --version  # 应显示 v20.x.x
-npm --version   # 应显示 npm 版本
-```
-
-### 使用 npm 快速安装
-
-通过 npm 快速使用所有工具，无需克隆仓库：
+### 从源代码安装
 
 ```bash
-# 系统检查（核心功能）
-npx ant-eyes-install check
-
-# 安装单个服务
-npx ant-eyes-install redis
-
-# 批量安装多个服务
-npx ant-eyes-install redis mysql nginx
-
-# 使用 Docker Compose 配置
-npx ant-eyes-install --compose redis mysql
-
-# 列出所有可用服务
-npx ant-eyes-install --list
+git clone https://github.com/JojoShine/ant-eyes.git
+cd ant-eyes
+npm install -g .
 ```
 
----
+## 快速开始
 
-## 🛠️ 辅助工具：服务安装脚本
-
-除了核心的系统检查工具，ant-eyes 还提供了一键安装常用服务的脚本。
-
-### 数据库
-- **redis** - 内存数据库（含鉴权配置）
-- **mysql** - 关系型数据库（含鉴权配置）
-- **postgresql** - 高级关系型数据库（含鉴权配置）
-- **mongodb** - NoSQL 文档数据库（含鉴权配置）
-
-### Web 服务
-- **nginx** - 高性能 Web 服务器和反向代理
-
-### 存储
-- **minio** - 对象存储服务，S3 兼容（含鉴权配置）
-
-### 开发工具
-- **nvm** - Node.js 版本管理器 + Node.js v20 LTS
-- **python** - Python 3.11 + uv 包管理器
-- **docker** - Docker CE + Docker Compose
-
-### 证书管理
-- **certbot** - Let's Encrypt 自动证书获取
-- **renew-cert** - 证书自动续期
-- **manage-cert** - 证书管理工具
-
-### 监控预警
-- **monitor** - 安装监控系统（初始化配置目录、邮件配置）
-- **monitor-config** - 管理监控任务（添加/删除/测试/启用禁用）
-
-**监控功能特性：**
-- 支持 GET / POST / PUT / DELETE 请求
-- POST 支持 JSON 请求体和自定义请求头
-- 连续失败 N 次后发送预警邮件（避免误报）
-- 1小时预警冷却期（避免邮件轰炸）
-- 接口恢复时自动发送恢复通知
-- 基于 crontab 的定时监控，支持分钟级频率
-
-**快速使用：**
-```bash
-# 1. 安装监控系统（初始化配置 + 邮件配置）
-npx ant-eyes-install monitor
-
-# 2. 添加并管理监控任务
-npx ant-eyes-install monitor-config
-```
-
-### 数据治理
-- **spark** - Apache Spark 大数据处理（单机模式）
-- **flink** - Apache Flink 流处理（单机模式）
-- **doris** - Apache Doris OLAP 分析（单机模式）
-
----
-
-## 📁 项目结构
-
-```
-ant-eyes/
-├── server_check.sh                 # ★ 核心：系统检查工具
-├── package.json                    # npm 包配置
-├── bin/install.js                  # CLI 入口
-│
-└── installation/                   # 服务安装脚本
-    ├── services/                   # 统一安装脚本（自动检测系统）
-    │   ├── install_redis.sh
-    │   ├── install_mysql.sh
-    │   ├── install_postgresql.sh
-    │   ├── install_mongodb.sh
-    │   ├── install_nginx.sh
-    │   ├── install_minio.sh
-    │   ├── install_nvm.sh
-    │   ├── install_python.sh
-    │   └── install_docker.sh
-    │
-    ├── docker-compose/             # Docker Compose 配置
-    │   ├── mysql/
-    │   ├── postgresql/
-    │   ├── mongodb/
-    │   ├── redis/
-    │   └── minio/
-    │
-    └── utils/                      # 工具脚本
-        ├── certificate/            # SSL/TLS 证书管理
-        └── data_governance/        # 数据治理框架
-```
-
----
-
-## 🔄 典型使用场景
-
-### 场景 1：系统健康检查（核心功能）
+### 系统检查
 
 ```bash
-# 运行系统检查工具
-npx ant-eyes-install check
+# 交互式菜单
+ant-eyes check
 
-# 选择功能：
-# 1. 完整检查 - 一次性检查所有项目
-# 2. 系统信息 - 查看 CPU、内存、磁盘等
-# 3. 安全审计 - 检查防火墙、用户权限等
-# 4. 网络诊断 - Ping、端口扫描、DNS 解析
-# 5. 性能分析 - 磁盘 I/O、网络速度测试
+# 检查系统信息
+ant-eyes check --system
+
+# 完整检查
+ant-eyes check --full
 ```
 
-### 场景 2：搭建 Web 后端环境
+### 服务安装
 
 ```bash
-npx ant-eyes-install docker nginx mysql redis
+# 安装 Redis
+ant-eyes install redis
+
+# 批量安装
+ant-eyes install redis mysql nginx
+
+# 查看可用服务
+ant-eyes install --list
+
+# 使用 Docker Compose
+ant-eyes install --compose redis
 ```
 
-### 场景 3：搭建数据分析环境
+### 运维管理
 
 ```bash
-npx ant-eyes-install spark flink doris
+# 定时任务管理
+ant-eyes manage cron
+
+# 时间同步
+ant-eyes manage time
+
+# 磁盘管理
+ant-eyes manage disk
+
+# 磁盘性能检查
+ant-eyes manage performance
 ```
 
-### 场景 4：配置 SSL 证书
+## 命令参考
 
+### check - 系统检查
+
+用法：`ant-eyes check [options]`
+
+选项：
+- `--system` - 系统基本信息（CPU、内存、磁盘、网络）
+- `--security` - 系统异常访问检查（SSH 登录、暴力破解）
+- `--components` - 常用组件运行状态
+- `--services` - 系统服务部署信息
+- `--firewall` - 系统安全情况检查
+- `--network` - 网络诊断工具
+- `--full` - 完整检查（所有模块）
+
+示例：
 ```bash
-npx ant-eyes-install certbot
+ant-eyes check --system        # 检查系统信息
+ant-eyes check --security      # 检查安全状态
+ant-eyes check --full          # 完整检查
 ```
 
----
+### install - 服务安装
 
-## ✨ 安装脚本特性（v2.0.0）
+用法：`ant-eyes install <service> [services...] [options]`
 
-### 🎯 统一脚本，自动检测系统
+可用服务：
+- `redis` - Redis 缓存数据库
+- `mysql` - MySQL 数据库
+- `postgresql` - PostgreSQL 数据库
+- `mongodb` - MongoDB 文档数据库
+- `nginx` - Nginx Web 服务器
+- `minio` - MinIO 对象存储
+- `nvm` - Node.js 版本管理器
+- `python` - Python 环境
+- `docker` - Docker 容器引擎
 
-所有 `services/` 目录下的脚本都内置了系统自动检测：
+选项：
+- `--compose` - 使用 Docker Compose 部署
+- `--list, -l` - 列出所有可用服务
 
-- ✅ 自动识别 CentOS/Ubuntu/Kylin
-- ✅ 自动选择正确的包管理器（yum/apt）
-- ✅ 自动配置对应的镜像源
-- ✅ 一个脚本，全平台通用
+示例：
+```bash
+ant-eyes install redis         # 安装 Redis
+ant-eyes install mysql nginx   # 批量安装
+ant-eyes install --compose redis  # 使用 Docker Compose 安装
+ant-eyes install --list        # 查看服务列表
+```
 
-### 🔐 强制鉴权配置
+### manage - 运维管理
 
-所有数据库和存储服务强制设置密码：
+用法：`ant-eyes manage <subcommand> [options]`
 
-- **Redis** - 强制输入不少于 6 位密码
-- **MySQL** - 强制输入不少于 8 位 root 密码
-- **PostgreSQL** - 强制输入不少于 8 位密码
-- **MongoDB** - 强制输入不少于 8 位 admin 密码
-- **MinIO** - 强制输入 root 用户名和密码
+子命令：
+- `cron` - Crontab 定时任务管理
+- `time` - NTP/Chrony 时间同步管理
+- `disk` - 磁盘分区管理
+- `performance` - 磁盘 I/O 性能检查
 
-### 📝 配置存档
+示例：
+```bash
+ant-eyes manage cron           # 管理定时任务
+ant-eyes manage time           # 管理时间同步
+ant-eyes manage disk           # 磁盘分区挂载
+ant-eyes manage performance    # 磁盘性能检查
+```
 
-安装完成后，配置信息自动保存到 `/etc/ant-eyes/<service>.conf`，方便后续查阅和管理。
+### tools - 工具集
 
----
+用法：`ant-eyes <tool> [options]`
 
-## 🔐 安全建议
+可用工具：
+- `certbot` - 安装和配置 Certbot（Let's Encrypt 客户端）
+- `renew-cert` - 更新和续期 SSL 证书
+- `manage-cert` - 管理 SSL 证书
 
-1. **以 root 身份运行** - 系统检查工具需要 root 权限获取完整信息
-2. **定期健康检查** - 建议每周运行一次系统检查工具
-3. **在生产前测试** - 安装脚本先在测试环境验证
-4. **审查脚本内容** - 运行任何脚本前都要查看其代码
-5. **保护配置文件** - `/etc/ant-eyes/` 下的配置文件包含敏感信息
+示例：
+```bash
+ant-eyes certbot              # 安装 Certbot
+ant-eyes renew-cert           # 续期证书
+ant-eyes manage-cert          # 管理证书
+```
 
----
+## 支持的系统
 
-## 📦 npm 包信息
+- CentOS 7.x, 8.x
+- Ubuntu 18.04, 20.04, 22.04
+- Kylin（麒麟）
+- UOS（统一操作系统）
 
-- **包名**: `ant-eyes-install`
-- **版本**: 1.0.4
-- **npm 地址**: https://www.npmjs.com/package/ant-eyes-install
+## 常见问题
 
----
+### Q: 需要 root 权限吗？
 
-**项目版本**：v2.0.0  
-**最后更新**：2026年4月2日  
-**最低要求**：root 权限、网络连接、Node.js 14+（仅 npm 方式需要，推荐使用 Node.js 20 LTS）
+A: 大多数功能需要 root 权限才能获取完整信息。建议使用 `sudo` 运行：
+```bash
+sudo ant-eyes check --full
+```
+
+### Q: 如何查看帮助？
+
+A: 使用 `--help` 选项：
+```bash
+ant-eyes --help              # 显示主帮助
+ant-eyes check --help        # 显示 check 帮助
+ant-eyes install --help      # 显示 install 帮助
+```
+
+### Q: 可以批量安装多个服务吗？
+
+A: 可以。在一条命令中指定多个服务即可：
+```bash
+ant-eyes install redis mysql nginx
+```
+
+### Q: 如何使用 Docker Compose 安装服务？
+
+A: 使用 `--compose` 选项：
+```bash
+ant-eyes install --compose redis
+```
+这会将 Docker Compose 配置文件复制到当前目录，然后可以运行 `docker-compose up -d` 启动服务。
+
+### Q: 如何卸载？
+
+A: 使用 npm 卸载：
+```bash
+npm uninstall -g ant-eyes
+```
+
+## 目录结构
+
+```
+scripts/
+├── check/                # 检查模块（6个脚本）
+│   ├── check_system.sh
+│   ├── check_security.sh
+│   ├── check_components.sh
+│   ├── check_services.sh
+│   ├── check_firewall.sh
+│   └── check_network.sh
+├── manage/               # 管理模块（4个脚本）
+│   ├── manage_cron.sh
+│   ├── manage_time.sh
+│   ├── manage_disk.sh
+│   └── manage_performance.sh
+├── install/              # 安装模块（9个脚本）
+│   ├── install_redis.sh
+│   ├── install_mysql.sh
+│   ├── install_postgresql.sh
+│   ├── install_mongodb.sh
+│   ├── install_nginx.sh
+│   ├── install_minio.sh
+│   ├── install_nvm.sh
+│   ├── install_python.sh
+│   └── install_docker.sh
+├── tools/                # 工具模块（3个脚本）
+│   ├── install_certbot.sh
+│   ├── renew_certificates.sh
+│   └── manage_certificates.sh
+├── compose/              # Docker Compose 配置
+│   ├── redis/
+│   ├── mysql/
+│   ├── postgresql/
+│   ├── mongodb/
+│   └── minio/
+└── utils/
+    └── common.sh         # 共享函数库
+```
+
+## 开发
+
+### 项目结构
+
+本项目采用模块化设计，每个功能都是独立的脚本文件。
+
+### 添加新的检查模块
+
+1. 在 `scripts/check/` 目录创建新脚本
+2. 加载共享函数库：`source "$SCRIPT_DIR/../utils/common.sh"`
+3. 使用现有的打印函数：`print_header`、`print_info` 等
+4. 在 `bin/install.js` 中添加路由
+
+### 添加新的管理模块
+
+1. 在 `scripts/manage/` 目录创建新脚本
+2. 遵循相同的模板和命名规范
+3. 保持交互式菜单的一致风格
+
+## 许可证
+
+MIT License
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 联系方式
+
+如有问题或建议，请提交 GitHub Issue。

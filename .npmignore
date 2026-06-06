@@ -19,3 +19,5 @@ docs/
 *.swp
 *.swo
 *~
+.qoder/
+.backup/

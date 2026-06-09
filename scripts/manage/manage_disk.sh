@@ -771,19 +771,25 @@ nofail     - 开机时挂载失败不影响启动
 
 问题3: 修改fstab后无法启动
 解决: 进入单用户模式或使用Live USB修复
+      mount -o remount,rw /
+      恢复/etc/fstab.bak备份
+
+【使用工具推荐】
+
+查看分区: lsblk, fdisk, parted, gdisk
+创建分区: fdisk(MBR), gdisk/parted(GPT)
+格式化: mkfs, mkfs.ext4, mkfs.xfs
+挂载管理: mount, umount, mountpoint
+配置: vim/nano /etc/fstab
+
+EOF
+}
 
 # ============================================================================
 # 主函数
 # ============================================================================
 
 main() {
-    if [ "$QUIET" -eq 1 ]; then
-        # 非交互模式，仅显示磁盘信息
-        show_partition_details
-        return
-    fi
-
-    # 交互模式，进入菜单
     manage_disk_mount
 }
 

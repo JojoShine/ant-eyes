@@ -9,10 +9,6 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../utils/common.sh"
 
-# ============================================================================
-# 磁盘I/O性能检查
-# ============================================================================
-
 # 磁盘 I/O 性能检查模块
 ################################################################################
 
@@ -271,12 +267,67 @@ show_disk_io_summary() {
     print_success "I/O 综合报告完成"
 }
 
+# 磁盘 I/O 性能检查主菜单
+check_disk_io_performance() {
+    print_header "磁盘 I/O 性能检查"
+
+    echo ""
+    print_info "磁盘 I/O 性能检查工具"
+    print_info "1. iostat 实时监控 - 查看当前 I/O 性能指标"
+    print_info "2. fio 基准测试 - 测试磁盘最大性能"
+    print_info "3. 磁盘健康状态 - 检查 SMART 健康信息"
+    print_info "4. I/O 综合报告 - 系统 I/O 负载分析"
+    echo ""
+
+    while true; do
+        print_subheader "磁盘 I/O 性能检查菜单"
+        echo "1) iostat 实时 I/O 监控"
+        echo "2) fio 磁盘性能基准测试"
+        echo "3) 磁盘 SMART 健康检查"
+        echo "4) I/O 综合报告"
+        echo "0) 返回主菜单"
+        echo ""
+
+        read -p "请选择 [0-4]: " io_choice
+        echo ""
+
+        case $io_choice in
+            1)
+                check_iostat_performance
+                ;;
+            2)
+                check_fio_benchmark
+                ;;
+            3)
+                check_disk_health
+                ;;
+            4)
+                show_disk_io_summary
+                ;;
+            0)
+                break
+                ;;
+            *)
+                print_error "无效选项"
+                ;;
+        esac
+
+        if [ "$io_choice" != "0" ]; then
+            echo ""
+            echo -n "按 Enter 继续..."
+            read
+        fi
+    done
+}
+
+################################################################################
+
 # ============================================================================
 # 主函数
 # ============================================================================
 
 main() {
-    manage_disk_io_performance
+    check_disk_io_performance
 }
 
 main "$@"

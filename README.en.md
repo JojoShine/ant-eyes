@@ -222,10 +222,9 @@ npm uninstall -g ant-eyes
 
 ```
 scripts/
-├── check/                # Check module (6 scripts)
+├── check/                # Check module (5 scripts)
 │   ├── check_system.sh
 │   ├── check_security.sh
-│   ├── check_components.sh
 │   ├── check_services.sh
 │   ├── check_firewall.sh
 │   └── check_network.sh

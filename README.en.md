@@ -155,6 +155,185 @@ ant-eyes manage disk           # Disk partition mounting
 ant-eyes manage performance    # Disk performance check
 ```
 
+#### manage cron - Cron Job Management
+
+Interactive menu supporting the following operations:
+1. **View cron jobs** - Display all scheduled tasks
+2. **Add new cron job** - Supports common templates or custom
+   - Daily backup (2 AM)
+   - Weekly cleanup (Sunday 3 AM)
+   - Monthly check (1st at midnight)
+   - Hourly execution
+   - Custom frequency
+3. **Delete cron job** - Remove tasks by number
+4. **Edit cron jobs** - Modify crontab using editor
+5. **View templates** - Check predefined task templates
+
+**Usage flow:**
+```bash
+ant-eyes manage cron
+# Select operation by number in the menu
+# 0 - Exit
+```
+
+#### manage time - Time Synchronization Management
+
+Interactive menu supporting the following operations:
+1. **View time sync status** - Check NTP/Chrony service status
+2. **Configure NTP servers** - Modify NTP server list
+3. **Manually adjust system time** - Set system time
+4. **View sync guide** - Learn about NTP configuration
+
+**Usage flow:**
+```bash
+ant-eyes manage time
+# Select operation by number in the menu
+# 0 - Exit
+```
+
+#### manage disk - Disk Partition Management
+
+**Interactive complete disk management tool with 9 menu options:**
+
+1. **View disk and partition info** - Display all disk partitions
+2. **View partition type (MBR/GPT)** - Auto-detect partition table type
+3. **Create new partition** - Support fdisk/gdisk
+   - Auto-detect whether to use fdisk (MBR) or gdisk (GPT)
+   - Optional to launch partition tool immediately
+4. **Format partition** - Support multiple filesystems
+   - ext4 (recommended)
+   - xfs (high performance)
+   - btrfs (next-gen)
+   - ntfs (Windows)
+   - exfat (portable)
+   - vfat (FAT32)
+5. **Mount partition** - Temporarily mount partition
+6. **Unmount partition** - Unmount mounted partitions
+7. **Create mount point** - Create new mount directory
+8. **Configure auto-mount** - Edit /etc/fstab for auto-start
+9. **View mount guide** - Complete operation guide
+
+**Execution order guide for three scenarios:**
+
+**Scenario 1️⃣: New unpartitioned disk (complete flow)**
+```bash
+ant-eyes manage disk
+# Step 1: Menu option 1 - View disk info
+#         Purpose: Find new disk (e.g., /dev/sdb)
+#
+# Step 2: Menu option 2 - View partition type
+#         Purpose: Detect partition table type (create if missing)
+#
+# Step 3: Menu option 3 - Create new partition
+#         Purpose: Use fdisk/gdisk to partition disk
+#         Select disk → Choose to launch tool
+#         If launched: n create partition → set size → w save
+#
+# Step 4: Menu option 1 - View disk info (optional)
+#         Purpose: Verify partition created (e.g., /dev/sdb1)
+#
+# Step 5: Menu option 4 - Format partition
+#         Purpose: Choose filesystem (recommend ext4)
+#         Confirm partition → Input device name to confirm
+#
+# Step 6: Menu option 5 - Mount partition
+#         Purpose: Temporarily mount to directory (e.g., /mnt/data)
+#
+# Step 7: Menu option 8 - Configure auto-mount
+#         Purpose: Edit /etc/fstab for permanent mounting
+#
+# Done: 0 - Exit
+```
+
+**Scenario 2️⃣: New partitioned but unformatted disk (skip step 3)**
+```bash
+ant-eyes manage disk
+# Step 1: Menu option 1 - View disk info
+# Step 5: Menu option 4 - Format partition
+# Step 6: Menu option 5 - Mount partition
+# Step 7: Menu option 8 - Configure auto-mount
+# Done: 0 - Exit
+```
+
+**Scenario 3️⃣: Partition exists, only needs mounting (skip steps 3, 4)**
+```bash
+ant-eyes manage disk
+# Step 1: Menu option 1 - View disk info (verify partition)
+# Step 6: Menu option 5 - Mount partition
+# Step 7: Menu option 8 - Configure auto-mount
+# Done: 0 - Exit
+```
+
+**⚠️ Critical reminder - Correct execution order:**
+
+1. **Must format before mounting** - Don't reverse order
+   - ❌ Wrong: Mount unformatted partition first
+   - ✅ Correct: Format → Mount → Configure auto-mount
+
+2. **Step 5 (Format) critical operation:**
+   - Select partition to format (e.g., /dev/sdb1)
+   - Choose filesystem type
+   - **Confirm warning**: Input device name (e.g., sdb1) to confirm
+   - This confirmation prevents accidental operations
+
+3. **Step 6 (Mount) may need step 7 (Create mount point) first:**
+   - If mount point doesn't exist, run option 7 first
+   - Then return to menu and run option 5
+
+4. **Menu option 2 "View partition type" flashes quickly:**
+   - This is normal, detection completes and returns to menu
+   - Information displays on screen, may need quick viewing
+
+**Important notes:**
+- All operations require root permissions (use sudo)
+- Creating and formatting partitions are **irreversible**, causes data loss
+- Before formatting, confirm you selected the **correct partition**
+- Operations **don't exit immediately**, can continue other tasks (select 0 to exit)
+
+#### manage performance - Disk I/O Performance Check
+
+**Interactive disk performance diagnostic tool with 4 menu options:**
+
+1. **iostat Real-time I/O Monitoring** - View current disk I/O performance
+   - Collect 3 samples (2-second intervals)
+   - Display throughput, IOPS, etc. for each disk
+   - Auto-installs sysstat tool if needed
+
+2. **fio Disk Performance Benchmark** - Test maximum disk performance
+   - Sequential read test (128K blocks)
+   - Sequential write test (128K blocks)
+   - Random read test (4K blocks)
+   - Random write test (4K blocks)
+   - Mixed read/write test
+   - Auto-installs fio tool if needed
+
+3. **Disk SMART Health Check** - Check disk hardware health
+   - Display disk temperature
+   - Check SMART attributes
+   - Predict disk lifespan
+   - Auto-installs smartctl tool if needed
+
+4. **I/O Summary Report** - System I/O load analysis
+   - Display disk utilization
+   - Analyze current I/O pressure
+   - Provide performance optimization suggestions
+
+**Usage flow:**
+```bash
+ant-eyes manage performance
+# Option 1: Run iostat monitoring
+# Option 2: Run fio benchmark
+# Option 3: Run SMART check
+# Option 4: View summary report
+# 0 - Exit
+```
+
+**Important notes:**
+- All tools auto-install, no manual configuration needed
+- fio benchmark may take time depending on disk performance
+- Recommend running tests when system is idle
+- Won't exit immediately after operations, can continue with other tasks
+
 ### tools - Tools and Utilities
 
 Usage: `ant-eyes <tool> [options]`
@@ -176,7 +355,7 @@ ant-eyes manage-cert          # Manage certificates
 - CentOS 7.x, 8.x
 - Ubuntu 18.04, 20.04, 22.04
 - Kylin
-- UOS (Unified Operating System)
+- UOS (Uniontech UOS)
 
 ## FAQ
 

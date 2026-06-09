@@ -1,6 +1,6 @@
 {
   "name": "ant-eyes",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Linux 服务器健康检查和运维管理工具。提供系统检查、安全审计、应用监控、快速部署等功能。",
   "main": "bin/install.js",
   "bin": {

@@ -12,7 +12,6 @@ ant-eyes is a comprehensive Linux server operations tool set that provides syste
 
 - System Health Check: CPU, memory, disk, network and other critical information
 - Security Audit: SSH login failure detection, brute force attack detection
-- Application Monitoring: Status detection of common services (MySQL, Redis, MongoDB, etc.)
 - Operations Management: Cron jobs, time synchronization, disk management, performance checking
 - Quick Deployment: One-command installation of Redis, MySQL, PostgreSQL, Nginx, Docker, etc.
 - Interactive Menu: Simple and user-friendly command-line interface
@@ -39,13 +38,22 @@ npm install -g .
 ### System Check
 
 ```bash
-# Interactive menu
-ant-eyes check
-
-# Check system information
+# System basic information (CPU, memory, disk, network)
 ant-eyes check --system
 
-# Full check
+# Security audit (SSH login failure, brute force detection)
+ant-eyes check --security
+
+# Service deployment information (listening ports, Docker containers, system services)
+ant-eyes check --services
+
+# Firewall and security check (firewall status, SELinux, SUID files)
+ant-eyes check --firewall
+
+# Network diagnostic tools (interfaces, DNS, gateway, connection statistics)
+ant-eyes check --network
+
+# Full check (execute all the above checks)
 ant-eyes check --full
 ```
 
@@ -90,7 +98,6 @@ Usage: `ant-eyes check [options]`
 Options:
 - `--system` - Basic system information (CPU, memory, disk, network)
 - `--security` - System anomaly access check (SSH login, brute force)
-- `--components` - Common component running status
 - `--services` - System service deployment information
 - `--firewall` - System security check
 - `--network` - Network diagnostic tools

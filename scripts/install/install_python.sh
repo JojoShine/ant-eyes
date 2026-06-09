@@ -19,6 +19,7 @@ PKG_MGR=""
 PYTHON_VERSION="3.11"
 TARGET_USER=""
 TARGET_HOME=""
+SKIP_INSTALL=0
 
 log_info()    { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
@@ -85,6 +86,43 @@ detect_user() {
     fi
     TARGET_HOME=$(eval echo ~"$TARGET_USER")
     log_info "将为用户 '$TARGET_USER' 安装 uv (主目录: $TARGET_HOME)"
+}
+
+check_system_python() {
+    log_info "检测系统中的 Python 版本..."
+
+    # 检查是否已有python3
+    if command -v python3 &>/dev/null; then
+        local current_version=$(python3 --version 2>&1 | awk '{print $2}')
+        log_info "系统已安装 Python $current_version"
+
+        # 提取主版本号和次版本号
+        local major_minor=$(echo "$current_version" | cut -d. -f1,2)
+
+        # 版本比较
+        if [[ "$major_minor" == "3.11" ]]; then
+            log_success "系统 Python 版本 $current_version 符合要求（3.11）"
+            PYTHON_VERSION="3.11"
+            SKIP_INSTALL=1
+            return 0
+        elif [[ $(printf '%s\n' "$major_minor" "3.11" | sort -V | head -n1) == "3.11" ]] && [[ "$major_minor" != "3.11" ]]; then
+            # 当前版本 < 3.11，需要安装3.11
+            log_warn "系统 Python 版本 $current_version < 3.11，将安装 Python 3.11"
+            PYTHON_VERSION="3.11"
+            SKIP_INSTALL=0
+            return 0
+        else
+            # 当前版本 > 3.11，使用系统版本
+            log_success "系统 Python 版本 $current_version > 3.11，将使用系统版本"
+            PYTHON_VERSION="$major_minor"
+            SKIP_INSTALL=1
+            return 0
+        fi
+    else
+        log_info "系统未安装 Python，将安装 Python 3.11"
+        PYTHON_VERSION="3.11"
+        SKIP_INSTALL=0
+    fi
 }
 
 configure_pkg_source() {
@@ -184,11 +222,20 @@ install_deps() {
 }
 
 install_python() {
+    log_info "检查 Python 安装需求..."
+
+    # 如果需要跳过安装（系统已有合适版本）
+    if [[ "$SKIP_INSTALL" == "1" ]]; then
+        log_success "系统已有 Python $PYTHON_VERSION，跳过安装"
+        return 0
+    fi
+
     log_info "安装 Python $PYTHON_VERSION..."
 
     # 检查是否已有合适版本
     if command -v "python$PYTHON_VERSION" &>/dev/null; then
         log_warn "Python $PYTHON_VERSION 已安装"
+        SKIP_INSTALL=1
         return 0
     fi
 
@@ -311,9 +358,27 @@ install_uv() {
     log_info "安装 uv 包管理器..."
 
     if command -v uv &>/dev/null; then
-        log_warn "uv 已安装，跳过安装步骤"
+        local uv_version=$(uv --version)
+        log_warn "uv 已安装 ($uv_version)，跳过安装步骤"
         return 0
     fi
+
+    # 获取将使用的Python版本
+    local python_bin=""
+    for candidate in "python${PYTHON_VERSION}" "python3.11" "python3"; do
+        if command -v "$candidate" &>/dev/null; then
+            python_bin=$(command -v "$candidate")
+            break
+        fi
+    done
+
+    if [[ -z "$python_bin" ]]; then
+        log_error "未找到合适的 Python，无法安装 uv"
+        return 1
+    fi
+
+    local python_ver=$("$python_bin" --version 2>&1 | awk '{print $2}')
+    log_info "将使用 Python $python_ver 安装 uv"
 
     # uv 安装脚本（多个镜像源）
     local UV_URLS=(
@@ -510,6 +575,7 @@ main() {
     detect_os
     check_network
     detect_user "$@"
+    check_system_python
     install_deps
     configure_pkg_source
     install_python

@@ -20,20 +20,20 @@ show_service_info() {
     print_subheader "监听端口列表"
     local port_count=0
     if command_exists ss; then
-        ss -tlnp 2>/dev/null | tail -n +2 | while read -r line; do
+        while read -r line; do
             local addr=$(echo "$line" | awk '{print $4}')
             local port=$(echo "$addr" | cut -d: -f2 | rev | cut -d: -f1 | rev)
             local desc="${PORT_SERVICES[$port]:-自定义服务}"
             print_info "$addr - $desc"
-        done
+        done < <(ss -tlnp 2>/dev/null | tail -n +2)
         port_count=$(ss -tln 2>/dev/null | tail -n +2 | wc -l)
     elif command_exists netstat; then
-        netstat -tln 2>/dev/null | grep LISTEN | while read -r line; do
+        while read -r line; do
             local addr=$(echo "$line" | awk '{print $4}')
             local port=$(echo "$addr" | rev | cut -d: -f1 | rev)
             local desc="${PORT_SERVICES[$port]:-自定义服务}"
             print_info "$addr - $desc"
-        done
+        done < <(netstat -tln 2>/dev/null | grep LISTEN)
         port_count=$(netstat -tln 2>/dev/null | grep LISTEN | wc -l)
     fi
     [ $port_count -gt 0 ] && print_info "监听中的端口: $port_count 个"
@@ -60,7 +60,7 @@ show_service_info() {
     # 运行中的服务
     print_subheader "系统服务摘要"
     if command_exists systemctl; then
-        local active_services=$(systemctl list-units --type=service --state=running --no-pager 2>/dev/null | grep -c "\.service")
+        local active_services=$(systemctl list-units --type=service --state=running --no-pager 2>/dev/null | grep -c "\.service" || echo "0")
         print_table_two_col "属性" "值" \
             "活跃的系统服务" "$active_services"
 
@@ -95,7 +95,9 @@ main() {
     done
 
     show_service_info
+    return 0
 }
 
 # 执行主函数
 main "$@"
+exit 0

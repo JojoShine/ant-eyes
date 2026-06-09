@@ -258,7 +258,7 @@ print_table_two_col() {
 
     # 打印表头
     printf "${CYAN}%-${col1_width}s%-${col2_width}s${NC}\n" "$col1_header" "$col2_header"
-    printf "${CYAN}$(printf '%-' ${col1_width}s | tr ' ' '─')$(printf '%-' ${col2_width}s | tr ' ' '─')${NC}\n"
+    printf "${CYAN}$(printf "%-${col1_width}s" | tr ' ' '─')$(printf "%-${col2_width}s" | tr ' ' '─')${NC}\n"
 
     # 打印数据行
     while [ $# -ge 2 ]; do

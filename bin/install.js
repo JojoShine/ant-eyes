@@ -67,7 +67,6 @@ const SCRIPT_MAP = {
   // check 模块脚本
   'check-system': 'scripts/check/check_system.sh',
   'check-security': 'scripts/check/check_security.sh',
-  'check-components': 'scripts/check/check_components.sh',
   'check-services': 'scripts/check/check_services.sh',
   'check-firewall': 'scripts/check/check_firewall.sh',
   'check-network': 'scripts/check/check_network.sh',
@@ -416,8 +415,6 @@ async function handleCheck(args) {
       await runScript(SCRIPT_MAP['check-system'], globalArgs);
     } else if (checkArgs.includes('--security')) {
       await runScript(SCRIPT_MAP['check-security'], globalArgs);
-    } else if (checkArgs.includes('--components')) {
-      await runScript(SCRIPT_MAP['check-components'], globalArgs);
     } else if (checkArgs.includes('--services')) {
       await runScript(SCRIPT_MAP['check-services'], globalArgs);
     } else if (checkArgs.includes('--firewall')) {
@@ -430,7 +427,6 @@ async function handleCheck(args) {
       const checkScripts = [
         SCRIPT_MAP['check-system'],
         SCRIPT_MAP['check-security'],
-        SCRIPT_MAP['check-components'],
         SCRIPT_MAP['check-services'],
         SCRIPT_MAP['check-firewall'],
         SCRIPT_MAP['check-network']

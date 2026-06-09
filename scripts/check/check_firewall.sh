@@ -47,7 +47,7 @@ show_security_info() {
 
     # 系统安全摘要
     print_subheader "安全配置摘要"
-    local user_count=$(grep -c ":" /etc/passwd)
+    local user_count=$(grep -c ":" /etc/passwd 2>/dev/null || echo "0")
     print_table_two_col "属性" "值" \
         "系统用户总数" "$user_count" \
         "防火墙" "$fw_status" \
@@ -87,6 +87,223 @@ show_security_info() {
 }
 
 # ============================================================================
+# 防火墙管理函数
+# ============================================================================
+
+manage_firewall() {
+    print_header "防火墙管理工具"
+
+    # 检查防火墙类型
+    local firewall_type=""
+    if command_exists firewall-cmd; then
+        firewall_type="firewalld"
+    elif command_exists ufw; then
+        firewall_type="ufw"
+    else
+        print_error "未发现支持的防火墙工具 (firewalld/ufw)"
+        print_info "请先安装防火墙工具:"
+        print_info "  CentOS/RHEL: yum install firewalld"
+        print_info "  Ubuntu: apt install ufw"
+        return 1
+    fi
+
+    print_success "检测到防火墙: $firewall_type"
+    echo ""
+
+    if [ "$firewall_type" = "firewalld" ]; then
+        manage_firewalld
+    else
+        manage_ufw
+    fi
+}
+
+manage_firewalld() {
+    while true; do
+        echo ""
+        print_subheader "Firewalld 管理菜单"
+        echo -e "  ${GREEN}1${NC}) 查看防火墙状态"
+        echo -e "  ${GREEN}2${NC}) 列出所有规则"
+        echo -e "  ${GREEN}3${NC}) 查看开放端口"
+        echo -e "  ${GREEN}4${NC}) 添加端口规则"
+        echo -e "  ${GREEN}5${NC}) 删除端口规则"
+        echo -e "  ${GREEN}6${NC}) 添加服务规则"
+        echo -e "  ${GREEN}7${NC}) 重新加载配置"
+        echo -e "  ${RED}0${NC}) 返回主菜单"
+        echo ""
+
+        read -p "请选择操作 [0-7]: " fw_choice
+        echo ""
+
+        case $fw_choice in
+            1)
+                print_subheader "防火墙状态"
+                if systemctl is-active --quiet firewalld; then
+                    print_success "Firewalld 状态: 运行中"
+                else
+                    print_warning "Firewalld 状态: 已停止"
+                fi
+                systemctl status firewalld --no-pager 2>/dev/null || echo "无法获取详细状态"
+                ;;
+            2)
+                print_subheader "所有防火墙规则"
+                firewall-cmd --list-all 2>/dev/null || print_error "无法列出规则"
+                ;;
+            3)
+                print_subheader "开放的端口"
+                echo "TCP 端口:"
+                firewall-cmd --list-ports 2>/dev/null | tr ' ' '\n' | grep '/tcp' | sort -V
+                echo ""
+                echo "UDP 端口:"
+                firewall-cmd --list-ports 2>/dev/null | tr ' ' '\n' | grep '/udp' | sort -V
+                echo ""
+                echo "允许的服务:"
+                firewall-cmd --list-services 2>/dev/null
+                ;;
+            4)
+                print_subheader "添加端口规则"
+                read -p "请输入端口号 (如: 8080): " port
+                read -p "请输入协议 (tcp/udp, 默认 tcp): " protocol
+                protocol=${protocol:-tcp}
+
+                if [ -n "$port" ] && [[ "$port" =~ ^[0-9]+$ ]]; then
+                    print_info "添加规则: 端口 $port/$protocol"
+                    firewall-cmd --permanent --add-port="$port/$protocol" 2>/dev/null
+                    firewall-cmd --reload 2>/dev/null
+                    print_success "规则已添加并重新加载"
+                else
+                    print_error "无效的端口号"
+                fi
+                ;;
+            5)
+                print_subheader "删除端口规则"
+                read -p "请输入要删除的端口号 (如: 8080): " port
+                read -p "请输入协议 (tcp/udp, 默认 tcp): " protocol
+                protocol=${protocol:-tcp}
+
+                if [ -n "$port" ] && [[ "$port" =~ ^[0-9]+$ ]]; then
+                    print_info "删除规则: 端口 $port/$protocol"
+                    firewall-cmd --permanent --remove-port="$port/$protocol" 2>/dev/null
+                    firewall-cmd --reload 2>/dev/null
+                    print_success "规则已删除并重新加载"
+                else
+                    print_error "无效的端口号"
+                fi
+                ;;
+            6)
+                print_subheader "添加服务规则"
+                print_info "常用服务: http, https, ssh, ftp, mysql, postgresql, redis, mongodb"
+                read -p "请输入服务名称: " service_name
+
+                if [ -n "$service_name" ]; then
+                    print_info "添加服务: $service_name"
+                    firewall-cmd --permanent --add-service="$service_name" 2>/dev/null
+                    firewall-cmd --reload 2>/dev/null
+                    print_success "服务规则已添加"
+                else
+                    print_error "服务名称不能为空"
+                fi
+                ;;
+            7)
+                print_subheader "重新加载配置"
+                firewall-cmd --reload 2>/dev/null
+                print_success "配置已重新加载"
+                ;;
+            0)
+                print_info "返回主菜单..."
+                break
+                ;;
+            *)
+                print_error "无效的选项"
+                ;;
+        esac
+    done
+}
+
+manage_ufw() {
+    while true; do
+        echo ""
+        print_subheader "UFW 管理菜单"
+        echo -e "  ${GREEN}1${NC}) 查看防火墙状态"
+        echo -e "  ${GREEN}2${NC}) 列出所有规则"
+        echo -e "  ${GREEN}3${NC}) 查看开放端口"
+        echo -e "  ${GREEN}4${NC}) 添加端口规则"
+        echo -e "  ${GREEN}5${NC}) 删除端口规则"
+        echo -e "  ${GREEN}6${NC}) 启用防火墙"
+        echo -e "  ${GREEN}7${NC}) 禁用防火墙"
+        echo -e "  ${RED}0${NC}) 返回主菜单"
+        echo ""
+
+        read -p "请选择操作 [0-7]: " fw_choice
+        echo ""
+
+        case $fw_choice in
+            1)
+                print_subheader "防火墙状态"
+                ufw status 2>/dev/null || print_error "无法获取防火墙状态"
+                ;;
+            2)
+                print_subheader "所有防火墙规则"
+                ufw show added 2>/dev/null || print_error "无法列出规则"
+                ;;
+            3)
+                print_subheader "开放的端口"
+                ufw status 2>/dev/null | grep -E "^[0-9]+.*ALLOW" || print_info "未开放任何端口"
+                ;;
+            4)
+                print_subheader "添加端口规则"
+                read -p "请输入端口号 (如: 8080): " port
+                read -p "请输入协议 (tcp/udp, 默认 tcp): " protocol
+                protocol=${protocol:-tcp}
+
+                if [ -n "$port" ] && [[ "$port" =~ ^[0-9]+$ ]]; then
+                    print_info "添加规则: 端口 $port/$protocol"
+                    ufw allow "$port/$protocol" 2>/dev/null
+                    print_success "规则已添加"
+                else
+                    print_error "无效的端口号"
+                fi
+                ;;
+            5)
+                print_subheader "删除端口规则"
+                read -p "请输入要删除的端口号 (如: 8080): " port
+                read -p "请输入协议 (tcp/udp, 默认 tcp): " protocol
+                protocol=${protocol:-tcp}
+
+                if [ -n "$port" ] && [[ "$port" =~ ^[0-9]+$ ]]; then
+                    print_info "删除规则: 端口 $port/$protocol"
+                    ufw delete allow "$port/$protocol" 2>/dev/null
+                    print_success "规则已删除"
+                else
+                    print_error "无效的端口号"
+                fi
+                ;;
+            6)
+                print_subheader "启用防火墙"
+                ufw enable 2>/dev/null
+                print_success "防火墙已启用"
+                ;;
+            7)
+                print_subheader "禁用防火墙"
+                read -p "确认要禁用防火墙吗? (y/N): " confirm
+                if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                    ufw disable 2>/dev/null
+                    print_warning "防火墙已禁用"
+                else
+                    print_info "操作已取消"
+                fi
+                ;;
+            0)
+                print_info "返回主菜单..."
+                break
+                ;;
+            *)
+                print_error "无效的选项"
+                ;;
+        esac
+    done
+}
+
+# ============================================================================
 # 主函数
 # ============================================================================
 
@@ -102,6 +319,10 @@ main() {
                 QUIET=1
                 shift
                 ;;
+            --manage)
+                manage_firewall
+                return 0
+                ;;
             *)
                 shift
                 ;;
@@ -109,7 +330,14 @@ main() {
     done
 
     show_security_info
+
+    # 提示用户可以管理防火墙
+    if check_root; then
+        echo ""
+        print_info "提示: 使用 'ant-eyes check --firewall --manage' 可以交互式管理防火墙"
+    fi
 }
 
 # 执行主函数
 main "$@"
+exit 0

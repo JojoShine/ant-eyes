@@ -221,9 +221,19 @@ gpgcheck=0
 EOF
 
     yum makecache fast 2>/dev/null || yum makecache 2>/dev/null || true
-    yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin 2>/dev/null || \
+
+    # 尝试安装Docker Compose插件（在yum源中可用）
+    if yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin 2>/dev/null; then
+        log_success "Docker CE 和 Docker Compose plugin 安装完成（yum）"
+        return 0
+    fi
+
+    # 如果插件安装失败（例如在麒麟系统上），尝试安装基础Docker
+    log_warn "Docker Compose plugin 在当前系统源中不可用，将继续安装基础 Docker"
+    yum install -y docker-ce docker-ce-cli containerd.io 2>/dev/null || \
         yum install -y docker 2>/dev/null || true
-    log_success "Docker CE 安装完成（yum）"
+    log_success "Docker CE 安装完成（yum，不含 Compose plugin）"
+    log_info "提示: 将通过独立版本安装 Docker Compose"
 }
 
 install_compose() {
@@ -236,26 +246,64 @@ install_compose() {
 
     log_info "安装 Docker Compose 独立版本..."
     local COMPOSE_VERSION="v2.24.5"
+    local OS_NAME=$(uname -s)
+    local ARCH=$(uname -m)
 
+    log_info "系统架构: $OS_NAME $ARCH"
+
+    # 多个备选下载源，按优先级排列
     local COMPOSE_URLS=(
-        "https://mirrors.aliyun.com/docker-toolbox/linux/compose/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)"
-        "https://get.daocloud.io/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)"
-        "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)"
+        # 国内镜像源（推荐）
+        "https://mirrors.aliyun.com/docker-toolbox/linux/compose/${COMPOSE_VERSION}/docker-compose-${OS_NAME}-${ARCH}"
+        "https://get.daocloud.io/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-${OS_NAME}-${ARCH}"
+        # 官方源（备选）
+        "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-${OS_NAME}-${ARCH}"
+        # 其他镜像源
+        "https://mirrors.tsinghua.edu.cn/github-release/docker/compose/LatestRelease/docker-compose-${OS_NAME}-${ARCH}"
+        "https://hub.fastgit.org/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-${OS_NAME}-${ARCH}"
     )
 
     local download_success=0
+    local url_index=0
     for url in "${COMPOSE_URLS[@]}"; do
+        ((url_index++))
+        log_info "[$url_index/${#COMPOSE_URLS[@]}] 尝试从 $url 下载..."
         if curl -fsSL -m 120 -o /usr/local/bin/docker-compose "$url" 2>/dev/null; then
-            download_success=1; break
+            if [[ -s /usr/local/bin/docker-compose ]]; then
+                download_success=1
+                log_success "下载成功"
+                break
+            else
+                rm -f /usr/local/bin/docker-compose
+                log_warn "下载文件为空，继续尝试其他源..."
+            fi
+        else
+            log_warn "下载失败，继续尝试其他源..."
         fi
     done
 
     if [[ $download_success -eq 1 ]]; then
         chmod +x /usr/local/bin/docker-compose
         ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose 2>/dev/null || true
-        log_success "Docker Compose $COMPOSE_VERSION 安装完成"
+
+        # 验证安装
+        if /usr/local/bin/docker-compose --version &>/dev/null; then
+            local compose_ver=$(/usr/local/bin/docker-compose --version 2>/dev/null | head -1)
+            log_success "Docker Compose 安装完成：$compose_ver"
+        else
+            log_warn "Docker Compose 文件已下载但验证失败，请检查系统环境"
+        fi
     else
-        log_warn "Docker Compose 独立版本下载失败，请手动安装"
+        log_error "Docker Compose 独立版本下载失败"
+        log_info "可能原因："
+        log_info "  1. 网络连接问题 - 请检查网络和防火墙"
+        log_info "  2. 麒麟系统架构问题 - 请确认系统架构（x86_64/aarch64）"
+        log_info "  3. 所有镜像源都不可用 - 请稍后重试或手动安装"
+        log_info ""
+        log_info "手动安装方法:"
+        log_info "  sudo curl -fsSL -o /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-$(uname -s)-$(uname -m)"
+        log_info "  sudo chmod +x /usr/local/bin/docker-compose"
+        log_info "  docker-compose --version"
     fi
 }
 

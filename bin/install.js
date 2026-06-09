@@ -425,15 +425,15 @@ async function handleCheck(args) {
       // 执行所有检查
       logInfo('执行完整系统检查...');
       const checkScripts = [
-        SCRIPT_MAP['check-system'],
-        SCRIPT_MAP['check-security'],
-        SCRIPT_MAP['check-services'],
-        SCRIPT_MAP['check-firewall'],
-        SCRIPT_MAP['check-network']
+        { script: SCRIPT_MAP['check-system'], args: globalArgs },
+        { script: SCRIPT_MAP['check-security'], args: globalArgs },
+        { script: SCRIPT_MAP['check-services'], args: globalArgs },
+        { script: SCRIPT_MAP['check-firewall'], args: globalArgs },
+        { script: SCRIPT_MAP['check-network'], args: [...globalArgs, '--no-interactive'] }
       ];
 
-      for (const script of checkScripts) {
-        await runScript(script, globalArgs);
+      for (const item of checkScripts) {
+        await runScript(item.script, item.args);
       }
     } else {
       // 默认运行交互式检查

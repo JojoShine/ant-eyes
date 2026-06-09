@@ -14,6 +14,8 @@ source "$SCRIPT_DIR/../utils/common.sh"
 # ============================================================================
 
 show_network_info() {
+    local enable_interactive=${1:-1}  # 获取交互模式参数，默认为1（启用）
+
     print_header "网络诊断工具"
 
     # ========== 网络接口信息 ==========
@@ -152,21 +154,22 @@ show_network_info() {
     print_info "已安装的工具: $installed/$total"
 
     # ========== 交互式诊断 ==========
-    echo ""
-    print_subheader "交互式网络诊断"
-    print_info "1. Ping 测试 - 测试主机连通性"
-    print_info "2. Telnet 测试 - 测试TCP端口"
-    print_info "3. Traceroute - 追踪路由路径"
-    print_info "4. DNS 解析 - 测试域名解析"
-    print_info "5. Nslookup - DNS查询"
-    print_info "6. ARP 查询 - 查询MAC地址"
-    print_info "7. 延迟测试 - 查看网络延迟"
-    print_info "8. 端口扫描 - 扫描常用端口"
-    print_info "0. 不执行测试"
-    echo ""
+    # 仅在启用交互模式且是交互终端时显示菜单
+    if [ "$enable_interactive" -eq 1 ] && [ -t 0 ]; then
+        echo ""
+        print_subheader "交互式网络诊断"
+        print_info "1. Ping 测试 - 测试主机连通性"
+        print_info "2. Telnet 测试 - 测试TCP端口"
+        print_info "3. Traceroute - 追踪路由路径"
+        print_info "4. DNS 解析 - 测试域名解析"
+        print_info "5. Nslookup - DNS查询"
+        print_info "6. ARP 查询 - 查询MAC地址"
+        print_info "7. 延迟测试 - 查看网络延迟"
+        print_info "8. 端口扫描 - 扫描常用端口"
+        print_info "0. 不执行测试"
+        echo ""
 
-    # 交互式测试
-    if [ -t 0 ]; then
+        # 交互式测试
         read -p "选择操作 [0-8]: " test_choice
 
         case $test_choice in
@@ -288,6 +291,8 @@ show_network_info() {
 
 main() {
     # 检查参数
+    local enable_interactive=1  # 默认启用交互模式
+
     while [[ $# -gt 0 ]]; do
         case $1 in
             -v|--verbose)
@@ -298,13 +303,17 @@ main() {
                 QUIET=1
                 shift
                 ;;
+            --no-interactive)
+                enable_interactive=0
+                shift
+                ;;
             *)
                 shift
                 ;;
         esac
     done
 
-    show_network_info
+    show_network_info "$enable_interactive"
 }
 
 # 执行主函数

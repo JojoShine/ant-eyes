@@ -23,7 +23,20 @@ show_service_info() {
         while read -r line; do
             local addr=$(echo "$line" | awk '{print $4}')
             local port=$(echo "$addr" | cut -d: -f2 | rev | cut -d: -f1 | rev)
-            local desc="${PORT_SERVICES[$port]:-自定义服务}"
+            # 简化端口描述（无需关联数组）
+            local desc="服务"
+            case "$port" in
+                22) desc="SSH" ;;
+                25|465|587) desc="邮件服务" ;;
+                53) desc="DNS" ;;
+                80|8080|8000) desc="HTTP Web" ;;
+                443|8443) desc="HTTPS Web" ;;
+                3306) desc="MySQL" ;;
+                5432) desc="PostgreSQL" ;;
+                6379) desc="Redis" ;;
+                27017) desc="MongoDB" ;;
+                *) desc="其他服务" ;;
+            esac
             print_info "$addr - $desc"
         done < <(ss -tlnp 2>/dev/null | tail -n +2)
         port_count=$(ss -tln 2>/dev/null | tail -n +2 | wc -l)
@@ -31,7 +44,20 @@ show_service_info() {
         while read -r line; do
             local addr=$(echo "$line" | awk '{print $4}')
             local port=$(echo "$addr" | rev | cut -d: -f1 | rev)
-            local desc="${PORT_SERVICES[$port]:-自定义服务}"
+            # 简化端口描述
+            local desc="服务"
+            case "$port" in
+                22) desc="SSH" ;;
+                25|465|587) desc="邮件服务" ;;
+                53) desc="DNS" ;;
+                80|8080|8000) desc="HTTP Web" ;;
+                443|8443) desc="HTTPS Web" ;;
+                3306) desc="MySQL" ;;
+                5432) desc="PostgreSQL" ;;
+                6379) desc="Redis" ;;
+                27017) desc="MongoDB" ;;
+                *) desc="其他服务" ;;
+            esac
             print_info "$addr - $desc"
         done < <(netstat -tln 2>/dev/null | grep LISTEN)
         port_count=$(netstat -tln 2>/dev/null | grep LISTEN | wc -l)

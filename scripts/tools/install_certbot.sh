@@ -105,8 +105,53 @@ check_installed() {
     fi
 }
 
-# 检查服务器
-check_server() {
+# 检查 Python 前置依赖
+check_python() {
+    log_info "检查 Python 前置依赖..."
+
+    if ! command -v python3 &> /dev/null; then
+        log_warn "未找到 Python3，正在安装..."
+        if [[ "$PKG_MANAGER" == "yum" ]]; then
+            yum install -y python3 python3-pip
+        else
+            apt-get update -qq
+            apt-get install -y python3 python3-pip
+        fi
+    fi
+
+    local python_version=$(python3 --version 2>&1 | awk '{print $2}')
+    log_success "Python 已安装: $python_version"
+
+    # 检查 pip3
+    if ! command -v pip3 &> /dev/null; then
+        log_error "pip3 未安装，无法继续"
+        exit 1
+    fi
+    log_success "pip3 已安装"
+}
+
+# 检查并创建证书目录
+check_certificate_dir() {
+    log_info "检查证书目录..."
+
+    if [[ ! -d "$CERTBOT_HOME" ]]; then
+        log_warn "证书目录不存在: $CERTBOT_HOME"
+        log_info "创建证书目录..."
+        mkdir -p "$CERTBOT_HOME"
+        chmod 700 "$CERTBOT_HOME"
+        log_success "证书目录已创建: $CERTBOT_HOME"
+    else
+        log_success "证书目录已存在: $CERTBOT_HOME"
+    fi
+
+    # 检查 live 目录
+    if [[ ! -d "$CERTBOT_HOME/live" ]]; then
+        log_info "live 子目录不存在，这是正常的（第一次安装）"
+    else
+        local cert_count=$(ls "$CERTBOT_HOME/live" 2>/dev/null | wc -l)
+        log_info "已有 $cert_count 个证书"
+    fi
+}
     log_info "检查已安装的服务器..."
 
     if command -v nginx &> /dev/null; then
@@ -224,28 +269,40 @@ interactive_config() {
 # 安装 Certbot
 install_certbot() {
     log_info "安装 Certbot..."
+    echo ""
+    log_info "【安装步骤 1】检查 Python 环境"
+    check_python
+
+    echo ""
+    log_info "【安装步骤 2】安装 Certbot 和依赖"
 
     if [[ "$PKG_MANAGER" == "yum" ]]; then
         # CentOS/RHEL
+        log_info "使用 yum 安装 Certbot..."
         yum install -y python3 python3-pip
         pip3 install certbot
 
         # 安装服务器插件
         if [[ "$SERVER_TYPE" == "nginx" ]]; then
+            log_info "安装 Nginx 插件..."
             pip3 install certbot-nginx
         elif [[ "$SERVER_TYPE" == "apache" ]]; then
+            log_info "安装 Apache 插件..."
             yum install -y python3-certbot-apache
         fi
 
     else
         # Ubuntu/Debian
+        log_info "使用 apt 安装 Certbot..."
         apt-get update -qq
         apt-get install -y certbot
 
         # 安装服务器插件
         if [[ "$SERVER_TYPE" == "nginx" ]]; then
+            log_info "安装 Nginx 插件..."
             apt-get install -y python3-certbot-nginx
         elif [[ "$SERVER_TYPE" == "apache" ]]; then
+            log_info "安装 Apache 插件..."
             apt-get install -y python3-certbot-apache
         fi
     fi
@@ -255,7 +312,11 @@ install_certbot() {
 
 # 申请证书
 obtain_certificate() {
-    log_info "申请 Let's Encrypt 证书..."
+    echo ""
+    log_info "【安装步骤 3】申请 Let's Encrypt 证书"
+    log_info "域名: $DOMAIN_NAME"
+    log_info "验证方式: $VALIDATION_METHOD"
+    echo ""
 
     local DOMAINS=$(echo "$DOMAIN_NAME" | tr ',' ' ')
     local DOMAIN_ARGS=""
@@ -268,6 +329,7 @@ obtain_certificate() {
     case $SERVER_TYPE in
         nginx)
             log_info "使用 Nginx 插件申请证书..."
+            log_info "正在与 Let's Encrypt 通讯..."
             certbot --nginx $DOMAIN_ARGS \
                 --email "$DOMAIN_EMAIL" \
                 --agree-tos \
@@ -276,6 +338,7 @@ obtain_certificate() {
             ;;
         apache)
             log_info "使用 Apache 插件申请证书..."
+            log_info "正在与 Let's Encrypt 通讯..."
             certbot --apache $DOMAIN_ARGS \
                 --email "$DOMAIN_EMAIL" \
                 --agree-tos \
@@ -286,11 +349,16 @@ obtain_certificate() {
             # 手动验证
             if [[ "$VALIDATION_METHOD" == "dns" ]]; then
                 log_info "使用 DNS 验证申请证书..."
+                log_info "请根据下面的提示完成 DNS 验证"
+                log_info "---"
                 certbot certonly --manual --preferred-challenges=dns $DOMAIN_ARGS \
                     --email "$DOMAIN_EMAIL" \
                     --agree-tos || true
+                log_info "---"
+                log_info "DNS 验证已完成"
             else
                 log_info "使用 HTTP 验证申请证书..."
+                log_info "确保 HTTP 端口 (80) 可访问..."
                 certbot certonly --standalone --preferred-challenges=http $DOMAIN_ARGS \
                     --email "$DOMAIN_EMAIL" \
                     --agree-tos \
@@ -299,12 +367,14 @@ obtain_certificate() {
             ;;
     esac
 
-    log_success "证书申请完成"
+    log_success "证书申请步骤完成"
 }
 
 # 配置自动续期
 configure_auto_renewal() {
     if [[ "$RENEW_METHOD" != "auto" ]]; then
+        log_info "已选择手动续期模式"
+        log_info "手动续期命令: certbot renew"
         return
     fi
 
@@ -343,8 +413,12 @@ EOF
     else
         echo "$CRON_TASK" | tee "$CRON_FILE" > /dev/null
         chmod 644 "$CRON_FILE"
-        log_success "自动续期 cron 任务已配置 (每天凌晨3点检查)"
+        log_success "自动续期 cron 任务已配置"
+        log_info "  执行时间: 每天凌晨 3:00"
+        log_info "  续期脚本: $CERT_RENEWAL_SCRIPT"
     fi
+
+    log_info "测试自动续期: certbot renew --dry-run"
 }
 
 # 配置防火墙
@@ -369,21 +443,39 @@ configure_firewall() {
 verify_certificates() {
     log_info "验证证书..."
 
-    if [[ -d "$CERTBOT_HOME/live" ]]; then
-        local DOMAINS=$(echo "$DOMAIN_NAME" | tr ',' ' ')
-
-        for domain in $DOMAINS; do
-            if [[ -f "$CERTBOT_HOME/live/$domain/cert.pem" ]]; then
-                local EXPIRY=$(openssl x509 -enddate -noout -in "$CERTBOT_HOME/live/$domain/cert.pem" | cut -d= -f2)
-                log_success "证书已获得: $domain (过期时间: $EXPIRY)"
-            fi
-        done
-
-        return 0
-    else
-        log_error "未找到证书目录"
+    if [[ ! -d "$CERTBOT_HOME/live" ]]; then
+        log_warn "证书目录不存在: $CERTBOT_HOME/live"
+        log_info "可能原因："
+        log_info "  1. 证书申请还未完成"
+        log_info "  2. 使用了手动验证模式，需要手动完成DNS/HTTP验证"
+        log_info "  3. 证书申请过程中出现错误"
+        log_info ""
+        log_info "请检查日志文件: /var/log/letsencrypt/letsencrypt.log"
         return 1
     fi
+
+    local DOMAINS=$(echo "$DOMAIN_NAME" | tr ',' ' ')
+    local cert_found=0
+
+    for domain in $DOMAINS; do
+        if [[ -f "$CERTBOT_HOME/live/$domain/cert.pem" ]]; then
+            local EXPIRY=$(openssl x509 -enddate -noout -in "$CERTBOT_HOME/live/$domain/cert.pem" | cut -d= -f2)
+            log_success "证书已获得: $domain"
+            log_info "  过期时间: $EXPIRY"
+            ((cert_found++))
+        else
+            log_warn "未找到证书: $domain"
+            log_info "  证书路径: $CERTBOT_HOME/live/$domain/cert.pem"
+        fi
+    done
+
+    if [[ $cert_found -eq 0 ]]; then
+        log_error "没有找到任何有效的证书"
+        return 1
+    fi
+
+    log_success "找到 $cert_found 个证书"
+    return 0
 }
 
 # 生成 Nginx 配置示例
@@ -595,7 +687,23 @@ main() {
     check_root
     detect_os
 
+    echo ""
+    log_info "╔════════════════════════════════════════════════════════╗"
+    log_info "║        Certbot 安装流程指南                           ║"
+    log_info "╚════════════════════════════════════════════════════════╝"
+    echo ""
+    log_info "本脚本将执行以下步骤:"
+    log_info "  1️⃣  检查系统环境和 Python 依赖"
+    log_info "  2️⃣  安装 Certbot 和相关插件"
+    log_info "  3️⃣  申请 Let's Encrypt 免费证书"
+    log_info "  4️⃣  配置自动续期任务 (可选)"
+    log_info "  5️⃣  配置防火墙规则"
+    log_info "  6️⃣  验证证书并生成配置示例"
+    log_info "  7️⃣  生成安装报告"
+    echo ""
+
     # 检查前置依赖
+    log_info "【前置检查】"
     if command -v check_and_install_dependencies &>/dev/null; then
         log_info "检查前置依赖..."
         check_and_install_dependencies "Certbot" "${CERTBOT_DEPENDENCIES[@]}"
@@ -603,7 +711,14 @@ main() {
     fi
     check_installed
     check_server
+    check_certificate_dir
+
+    echo ""
+    log_info "【交互配置】"
     interactive_config
+
+    echo ""
+    log_info "【开始安装】"
     install_certbot
 
     if [[ "$SERVER_TYPE" != "manual" ]]; then
@@ -613,21 +728,49 @@ main() {
         obtain_certificate || true
     fi
 
+    echo ""
+    log_info "【配置续期】"
     configure_auto_renewal
+
+    echo ""
+    log_info "【配置防火墙】"
     configure_firewall
 
+    echo ""
+    log_info "【验证安装】"
     if verify_certificates; then
+        echo ""
+        log_info "【生成配置】"
         if [[ "$SERVER_TYPE" == "nginx" ]]; then
             generate_nginx_config
         elif [[ "$SERVER_TYPE" == "apache" ]]; then
             generate_apache_config
         fi
 
+        echo ""
+        log_info "【生成报告】"
         generate_report
-        log_success "Certbot 安装完成！"
+
+        echo ""
+        log_success "✅ Certbot 安装完成！"
+        echo ""
+        log_info "【后续步骤】"
+        log_info "1. 根据您的服务器类型（Nginx/Apache），参考生成的配置示例"
+        log_info "2. 测试证书是否生效"
+        log_info "3. 监控日志确保续期正常工作"
+        echo ""
         exit 0
     else
-        log_error "证书验证失败"
+        echo ""
+        log_error "❌ 证书验证失败，安装未完成"
+        log_info ""
+        log_info "【故障排查】"
+        log_info "1. 检查域名是否正确解析"
+        log_info "2. 确保 HTTP/HTTPS 端口可访问"
+        log_info "3. 查看详细日志: tail -f /var/log/letsencrypt/letsencrypt.log"
+        log_info "4. 运行以下命令查看证书申请状态:"
+        log_info "   certbot certificates"
+        echo ""
         exit 1
     fi
 }

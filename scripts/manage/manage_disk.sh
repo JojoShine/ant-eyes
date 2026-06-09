@@ -785,6 +785,79 @@ nofail     - 开机时挂载失败不影响启动
 EOF
 }
 
+auto_install_tool() {
+    local tool_name="$1"
+    local package_name="$2"
+
+    # 如果工具已存在，直接返回成功
+    if command_exists "$tool_name"; then
+        return 0
+    fi
+
+    # 工具不存在，需要安装
+    print_warning "检测到 $tool_name 未安装，正在尝试自动安装 ($package_name)..."
+
+    # 检查是否为 root 用户
+    if [ "$EUID" -ne 0 ]; then
+        print_error "$tool_name 需要 root 权限安装"
+        print_info "请使用以下命令手动安装:"
+
+        local pkg_manager=$(get_package_manager)
+        case "$pkg_manager" in
+            yum|dnf)
+                print_info "  sudo $pkg_manager install -y $package_name"
+                ;;
+            apt)
+                print_info "  sudo apt-get update && sudo apt-get install -y $package_name"
+                ;;
+            *)
+                print_info "  请根据系统包管理器安装: $package_name"
+                ;;
+        esac
+        return 1
+    fi
+
+    # 获取包管理器
+    local pkg_manager=$(get_package_manager)
+
+    case "$pkg_manager" in
+        yum)
+            print_info "使用 yum 安装 $package_name..."
+            if yum install -y "$package_name" > /dev/null 2>&1; then
+                print_success "$package_name 安装成功"
+                return 0
+            else
+                print_error "$package_name 安装失败"
+                return 1
+            fi
+            ;;
+        dnf)
+            print_info "使用 dnf 安装 $package_name..."
+            if dnf install -y "$package_name" > /dev/null 2>&1; then
+                print_success "$package_name 安装成功"
+                return 0
+            else
+                print_error "$package_name 安装失败"
+                return 1
+            fi
+            ;;
+        apt)
+            print_info "使用 apt-get 安装 $package_name..."
+            if apt-get update -qq > /dev/null 2>&1 && apt-get install -y "$package_name" > /dev/null 2>&1; then
+                print_success "$package_name 安装成功"
+                return 0
+            else
+                print_error "$package_name 安装失败"
+                return 1
+            fi
+            ;;
+        *)
+            print_error "无法识别包管理器，无法自动安装"
+            return 1
+            ;;
+    esac
+}
+
 # ============================================================================
 # 主函数
 # ============================================================================

@@ -12,7 +12,7 @@ ant-eyes is a comprehensive Linux server operations tool set that provides syste
 
 - System Health Check: CPU, memory, disk, network and other critical information
 - Security Audit: SSH login failure detection, brute force attack detection
-- Operations Management: Cron jobs, time synchronization, disk management, performance checking
+- Operations Management: Cron jobs, time synchronization, disk management, firewall management, performance checking
 - Quick Deployment: One-command installation of Redis, MySQL, PostgreSQL, Nginx, Docker, etc.
 - Interactive Menu: Simple and user-friendly command-line interface
 - Modular Design: Clear functional divisions for easy extension
@@ -87,6 +87,9 @@ ant-eyes manage disk
 
 # Disk performance check
 ant-eyes manage performance
+
+# Firewall management
+ant-eyes manage firewall
 ```
 
 ## Command Reference
@@ -146,6 +149,7 @@ Subcommands:
 - `time` - NTP/Chrony time synchronization
 - `disk` - Disk partition management
 - `performance` - Disk I/O performance check
+- `firewall` - Firewall management (port opening, rich rules)
 
 Examples:
 ```bash
@@ -153,6 +157,7 @@ ant-eyes manage cron           # Manage cron jobs
 ant-eyes manage time           # Manage time sync
 ant-eyes manage disk           # Disk partition mounting
 ant-eyes manage performance    # Disk performance check
+ant-eyes manage firewall       # Firewall management
 ```
 
 #### manage cron - Cron Job Management
@@ -290,6 +295,40 @@ ant-eyes manage disk
 - Before formatting, confirm you selected the **correct partition**
 - Operations **don't exit immediately**, can continue other tasks (select 0 to exit)
 
+#### manage firewall - Firewall Management
+
+**Interactive firewall management tool, supporting both firewalld and ufw engines:**
+
+1. **View Firewall Status** - Display open ports, allowed services, rich rules
+2. **Open Port** - Support single port/port range, tcp/udp protocol selection
+   - Optional permanent (`--permanent`) or runtime-only
+   - Auto-detect if port is already open
+   - Display common port service name reference
+3. **Close Port** - Interactive selection to close, sync cleanup of permanent rules
+4. **Rich Rule Management** - Interactive advanced firewall rule builder
+   - Allow/reject specific IP access to port
+   - Allow/reject specific IP range (CIDR) access to port
+   - Port forwarding
+   - Rate limiting (brute force prevention)
+   - Manual custom rich rule input
+   - Built-in rich rule syntax documentation
+5. **Service Management** - Add/remove firewalld services (http, ssh, mysql, etc.)
+6. **Reload Rules** - One-click firewall rule reload
+
+**Usage flow:**
+```bash
+ant-eyes manage firewall
+# Select operation by number in the menu
+# 0 - Exit
+```
+
+**Important notes:**
+- Auto-detects firewall type (firewalld / ufw) and provides corresponding management interface
+- firewalld supports full features (ports, rich rules, service management)
+- ufw supports port open/close and rule viewing
+- Port opening allows choosing permanent or temporary effect
+- All operations require root permissions
+
 #### manage performance - Disk I/O Performance Check
 
 **Interactive disk performance diagnostic tool with 4 menu options:**
@@ -407,11 +446,12 @@ scripts/
 │   ├── check_services.sh
 │   ├── check_firewall.sh
 │   └── check_network.sh
-├── manage/               # Management module (4 scripts)
+├── manage/               # Management module (5 scripts)
 │   ├── manage_cron.sh
 │   ├── manage_time.sh
 │   ├── manage_disk.sh
-│   └── manage_performance.sh
+│   ├── manage_performance.sh
+│   └── manage_firewall.sh
 ├── install/              # Installation module (9 scripts)
 │   ├── install_redis.sh
 │   ├── install_mysql.sh

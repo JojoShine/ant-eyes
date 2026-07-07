@@ -15,6 +15,27 @@
 
 ---
 
+## [3.2.0] - 2026-07-07
+
+### Added
+- 新增 `manage_firewall.sh` 防火墙管理模块
+  - 支持 firewalld / ufw 双引擎自动检测
+  - 端口开放/关闭（支持单端口、端口段、tcp/udp 协议）
+  - 支持永久规则（`--permanent`）和临时规则
+  - Rich 规则交互式构建（IP/网段/端口转发/限速等 7 种模板）
+  - 服务管理（添加/移除 firewalld 服务）
+  - 防火墙规则一键重载
+- 注册 `manage firewall` 命令到 CLI
+
+### Changed
+- 更新 `install_minio.sh` 至 v2.3.0 镜像源优化版
+  - 多源下载（dl.minio.org.cn / dl.min.io / GitHub / Gitee）
+  - 架构检测（amd64/arm64）
+  - 离线安装模式 + 网络诊断
+  - 下载文件校验（文件大小检查）
+
+---
+
 ## [2.0.0] - 2026-06-06
 
 ### Major Release: 架构重构和功能优化
@@ -131,6 +152,7 @@
 - `ant-eyes manage time` - 时间同步
 - `ant-eyes manage disk` - 磁盘管理
 - `ant-eyes manage performance` - 磁盘性能检查
+- `ant-eyes manage firewall` - 防火墙管理
 
 ---
 

@@ -76,6 +76,7 @@ const SCRIPT_MAP = {
   'manage-time': 'scripts/manage/manage_time.sh',
   'manage-disk': 'scripts/manage/manage_disk.sh',
   'manage-performance': 'scripts/manage/manage_performance.sh',
+  'manage-firewall': 'scripts/manage/manage_firewall.sh',
 };
 
 // Docker Compose 映射表
@@ -254,7 +255,8 @@ function showManageHelp() {
   log('  cron          定时任务管理');
   log('  disk          磁盘分区管理');
   log('  time          时间同步管理');
-  log('  performance   磁盘 I/O 性能检查\n');
+  log('  performance   磁盘 I/O 性能检查');
+  log('  firewall      防火墙管理\n');
 
   log('全局选项:', 'cyan');
   log('  -v, --verbose   详细输出');
@@ -265,6 +267,7 @@ function showManageHelp() {
   log('  ant-eyes manage disk          # 磁盘分区挂载');
   log('  ant-eyes manage time          # NTP 时间同步');
   log('  ant-eyes manage performance   # 磁盘性能检查');
+  log('  ant-eyes manage firewall      # 防火墙管理');
   log('  ant-eyes manage cron -q       # 定时任务(安静模式)\n');
 }
 
@@ -540,6 +543,9 @@ async function handleManage(args) {
         break;
       case 'performance':
         await runScript(SCRIPT_MAP['manage-performance'], globalArgs);
+        break;
+      case 'firewall':
+        await runScript(SCRIPT_MAP['manage-firewall'], globalArgs);
         break;
       case 'cert':
         logInfo('证书管理功能开发中...');
